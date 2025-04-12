@@ -35,8 +35,8 @@ const AboutGame = () => {
           <li>Collectible alien types with fun bios and animations</li>
         </ul>
         <p className="mt-[15px]">
-          Whether you're a casual explorer or a cosmic champion, Alien Catcher
-          will pull you into a magical world where every catch counts.
+          Whether you&apos;re a casual explorer or a cosmic champion, Alien
+          Catcher will pull you into a magical world where every catch counts.
         </p>
       </div>
     </div>
