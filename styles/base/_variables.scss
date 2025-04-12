@@ -1,0 +1,48 @@
+// Break points
+$xxsmall-min-width: 340px;
+$xsmall-min-width: 360px;
+$small-min-width: 576px;
+$medium-min-width: 768px;
+$xxmedium-min-width: 898px;
+$xmedium-min-width: 1024px;
+$xxxmedium-min-width: 1130px;
+$large-min-width: 1200px;
+$xxl-large-min-width: 1300px;
+$xl-large-min-width: 1480px;
+$xlarge-min-width: 1536px;
+$xxlarge-min-width: 1920px;
+
+$xxsmall-max-width: 339.98px;
+$xsmall-max-width: 359.98px;
+$ssmall-max-width: 394.98px;
+$small-max-width: 575.98px;
+$medium-max-width: 767.98px;
+$xxmedium-max-width: 899.98px;
+$xmedium-max-width: 1023.98px;
+$xxxmedium-max-width: 1129.98px;
+$large-max-width: 1199.98px;
+$xxl-large-max-width: 1299.98px;
+$xl-large-max-width: 1479.98px;
+$xlarge-max-width: 1535.98px;
+$xxlarge-max-width: 1919.98px;
+
+// // COLORS
+$color-light-gray: #f2f2f2;
+$color-gray: #000000;
+$color-middle-gray: #616060;
+$color-yellow: #83c5be;
+
+$color-font-primary: #414042;
+$color-green: #2a5a51;
+$color-pewter: #6d6e70;
+$color-gold: #ffb718;
+$color-marigold: #ffd100;
+$color-white: #ffffff;
+
+// //FONTS
+$font-primary: "Arial";
+// $font-secondary: "Arial", sans-serif;
+
+$padding: calc((100vw - 1320px) / 2 - (100vw - 1960px) / 2);
+$padding-lg: calc((100vw - 1198px) / 2);
+$padding-2000: calc((100vw - 1360px) / 2);

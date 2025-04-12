@@ -1,0 +1,15 @@
+.back-to-top {
+  position: fixed;
+  bottom: 45px;
+  right: calc((100vw - 1320px) / 2 + 35px);
+  padding: 7px 18px 10px 18px;
+  background-color: #e0a5e0;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  font-size: 22px;
+  cursor: pointer;
+  transition: opacity 0.3s ease;
+  box-shadow: 0 0 10px #e0a5e0, 0 0 40px #e0a5e0, 0 0 80px #e0a5e0;
+  z-index: 100;
+}
