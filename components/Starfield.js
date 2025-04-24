@@ -11,7 +11,7 @@ const Starfield = () => {
         return (
           <div
             key={i}
-            className={`absolute bottom-[50px] bg-white  animate-rise animation-delay-${delay}`}
+            className={`absolute bottom-[70px] bg-white  animate-rise animation-delay-${delay}`}
             style={{
               width: size,
               height: size,

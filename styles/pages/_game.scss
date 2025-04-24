@@ -11,7 +11,7 @@
 
 @layer utilities {
   .animate-rise {
-    animation: rise 50s linear infinite;
+    animation: rise 100s linear infinite;
   }
 
   .animation-delay-1 {
@@ -21,7 +21,7 @@
     animation-delay: 2s;
   }
   .animation-delay-3 {
-    animation-delay: 6s;
+    animation-delay: 3s;
   }
   .animation-delay-4 {
     animation-delay: 4s;

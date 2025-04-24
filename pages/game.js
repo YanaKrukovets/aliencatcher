@@ -9,9 +9,9 @@ export default function Game() {
         <meta name="description" content="description" />
       </Head>
 
-      <div className="flex flex-col justify-center items-center">
+      <div className="flex flex-col justify-center items-center h-full">
         <Image
-          className="mt-[90px] min-h-[70vh] w-auto"
+          className="mt-[100px] min-h-[80vh] w-auto mb-[15px]"
           src="/images/pages/game/background.png"
           height={270}
           width={270}
