@@ -12,7 +12,7 @@ function ContactForm() {
   }
 
   return (
-    <div id="contact" className="purple py-[40px] font-roboto">
+    <div id="contact" className="py-[40px] font-roboto">
       <div className="max-w-wrapper px-5 mx-auto  py-[20px] ">
         <form
           onSubmit={handleSubmit}

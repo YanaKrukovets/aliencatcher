@@ -28,6 +28,14 @@ const HeaderBanner = () => {
               />
             </h1>
           </div>
+          <div className="projects-container flex-disp">
+            <a class="my-work-btn sm:my-[20px]" href="/game">
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>Game
+            </a>
+          </div>
           <div id="stars"></div>
           <div id="stars2"></div>
           <div id="stars3"></div>

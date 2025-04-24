@@ -23,7 +23,7 @@ export default function Home(props) {
       </div>
       <div className="max-w-inner xxxl:px-0">
         <AboutGame />
-        <Projects />
+
         <About />
         <ContactForm />
       </div>

@@ -10,7 +10,7 @@ export default function Game() {
       <div className="flex flex-col justify-center items-center">
         <div>
           <Image
-            className="min-h-[100vh] backround-game"
+            className="min-h-[70vh] backround-game"
             src="/images/pages/game/background.png"
             height={270}
             width={270}
