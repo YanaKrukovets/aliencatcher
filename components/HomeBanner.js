@@ -1,6 +1,7 @@
 import React from "react";
 import Navbar from "./Navbar";
 import { Typewriter } from "react-simple-typewriter";
+import Link from "next/link";
 
 const HeaderBanner = () => {
   return (
@@ -29,12 +30,12 @@ const HeaderBanner = () => {
             </h1>
           </div>
           <div className="projects-container flex-disp">
-            <a class="my-work-btn sm:my-[20px]" href="/game">
+            <Link class="my-work-btn sm:my-[20px]" href="/game">
               <span></span>
               <span></span>
               <span></span>
               <span></span>Game
-            </a>
+            </Link>
           </div>
           <div id="stars"></div>
           <div id="stars2"></div>
