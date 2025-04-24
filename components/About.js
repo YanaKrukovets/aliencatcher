@@ -2,6 +2,7 @@ import React from "react";
 import Image from "next/image";
 import { AiFillGithub } from "react-icons/ai";
 import { AiFillLinkedin } from "react-icons/ai";
+import { AiFillInstagram } from "react-icons/ai";
 
 const About = () => {
   return (
@@ -90,6 +91,13 @@ const About = () => {
           aria-label="Link to Yana Krukovets Github"
         >
           <AiFillGithub className="social-media" role="presentation" />
+        </a>
+        <a
+          href="https://www.instagram.com/aliencatcher2025/"
+          target="_blanc"
+          aria-label="Link to alien catcher instagram account"
+        >
+          <AiFillInstagram className="social-media" role="presentation" />
         </a>
         <a
           href="https://www.linkedin.com/in/yana-krukovets-25658260/"

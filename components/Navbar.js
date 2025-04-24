@@ -25,7 +25,7 @@ export default function Navbar() {
       label:
         "<span class='whitespace-nowrap lg:whitespace-normal text-[20px]'>Game</span>",
       aria: "Link to Yana Krukovets game Alien Catcher — A Cosmic Watercolor Adventure",
-      href: "/#projects",
+      href: "/game",
     },
     item3: {
       label:
