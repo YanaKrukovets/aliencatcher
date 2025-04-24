@@ -1,3 +1,15 @@
+.headerbanner {
+  height: 100vh;
+
+  background: radial-gradient(ellipse at bottom, #663b66 0%, #090a0f 100%);
+  overflow: hidden;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 18px;
+  position: relative;
+}
+
 header {
   font-style: normal;
   font-weight: 700;
@@ -5,10 +17,6 @@ header {
   line-height: 18px;
   position: relative;
   z-index: 90;
-  height: 100vh;
-
-  background: radial-gradient(ellipse at bottom, #663b66 0%, #090a0f 100%);
-  overflow: hidden;
 
   nav {
     position: relative;

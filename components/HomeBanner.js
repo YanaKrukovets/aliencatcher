@@ -5,7 +5,6 @@ import { Typewriter } from "react-simple-typewriter";
 const HeaderBanner = () => {
   return (
     <>
-      <Navbar />
       <div className="max-w-inner xxxl:px-0">
         <div className="max-w-wrapper px-5 mx-auto">
           <div

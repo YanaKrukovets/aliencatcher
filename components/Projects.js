@@ -11,15 +11,12 @@ const Projects = () => {
         </h2>
 
         <div className="projects-container flex-disp">
-          <Typewriter
-            words={["In Progress..."]}
-            loop={true}
-            cursor
-            cursorStyle="_"
-            typeSpeed={120}
-            deleteSpeed={80}
-            delaySpeed={950}
-          />
+          <a class="my-work-btn sm:my-[20px]" href="/game">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>Game
+          </a>
         </div>
       </div>
     </div>
