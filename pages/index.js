@@ -1,7 +1,7 @@
 import About from "../components/About";
 import AboutGame from "../components/AboutGame";
 import Head from "next/head";
-import Projects from "../components/Projects";
+
 import ContactForm from "../components/Contact";
 import HeaderBanner from "../components/HomeBanner";
 

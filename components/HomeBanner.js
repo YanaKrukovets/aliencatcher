@@ -29,13 +29,27 @@ const HeaderBanner = () => {
               />
             </h1>
           </div>
-          <div className="projects-container flex-disp">
-            <Link class="my-work-btn sm:my-[20px]" href="/game">
-              <span></span>
-              <span></span>
-              <span></span>
-              <span></span>Game
-            </Link>
+          <div className="flex mt-[10px] justify-center mx-[50px] md:flex-col">
+            <div className="projects-container flex-disp">
+              <Link class="my-work-btn sm:my-[20px]" href="/game">
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>Game
+              </Link>
+            </div>
+            <div className="projects-container flex-disp">
+              <Link
+                class="my-work-btn sm:my-[20px]"
+                href="https://buymeacoffee.com/yanashellii"
+                target="_blank"
+              >
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>Support
+              </Link>
+            </div>
           </div>
           <div id="stars"></div>
           <div id="stars2"></div>
