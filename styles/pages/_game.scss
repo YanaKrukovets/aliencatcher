@@ -30,3 +30,18 @@
     animation-delay: 5s;
   }
 }
+
+@keyframes scroll-vertical {
+  0% {
+    transform: translateY(0%);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+@layer utilities {
+  .scroll-vertical-loop {
+    animation: scroll-vertical 35s linear infinite;
+  }
+}

@@ -8,16 +8,36 @@ export default function Game() {
       <Head>
         <meta name="description" content="description" />
       </Head>
+      <div>
+        <div className="relative h-[100vh] overflow-hidden flex justify-center items-start">
+          <div className="relative w-[570px] h-[100vh] overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-[200vh] scroll-vertical-loop">
+              {/* First image */}
+              <div className="w-full h-[100vh]">
+                <Image
+                  src="/images/pages/game/background.png"
+                  width={270}
+                  height={540}
+                  alt="space background"
+                  className="w-full h-full object-cover"
+                />
+              </div>
 
-      <div className="flex flex-col justify-center items-center h-full">
-        <Image
-          className="mt-[100px] min-h-[80vh] w-auto mb-[15px]"
-          src="/images/pages/game/background.png"
-          height={270}
-          width={270}
-          alt="space backround"
-        />
-        <Starfield />
+              {/* Second identical image */}
+              <div className="w-full h-[100vh]">
+                <Image
+                  src="/images/pages/game/background.png"
+                  width={270}
+                  height={540}
+                  alt="space background"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            </div>
+
+            <Starfield />
+          </div>
+        </div>
       </div>
     </>
   );
