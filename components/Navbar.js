@@ -17,25 +17,25 @@ export default function Navbar() {
   nav = {
     item1: {
       label:
-        "<span class='whitespace-nowrap lg:whitespace-normal text-[20px]'>About the Game</span>",
+        "<span className='whitespace-nowrap lg:whitespace-normal text-[20px]'>About the Game</span>",
       aria: "Link About game Alien Catcher — A Cosmic Watercolor Adventure",
       href: "/#aboutgame",
     },
     item2: {
       label:
-        "<span class='whitespace-nowrap lg:whitespace-normal text-[20px]'>Game</span>",
+        "<span className='whitespace-nowrap lg:whitespace-normal text-[20px]'>Game</span>",
       aria: "Link to Yana Krukovets game Alien Catcher — A Cosmic Watercolor Adventure",
       href: "/game",
     },
     item3: {
       label:
-        "<span class='whitespace-nowrap lg:whitespace-normal text-[20px]'>About the Author</span>",
+        "<span className='whitespace-nowrap lg:whitespace-normal text-[20px]'>About the Author</span>",
       aria: "Link About Yana Krukovets",
       href: "/#about",
     },
     item4: {
       label:
-        "<span class='whitespace-nowrap lg:whitespace-normal text-[20px]'>Contact</span>",
+        "<span className='whitespace-nowrap lg:whitespace-normal text-[20px]'>Contact</span>",
       aria: "Link to Contact Yana Krukovets",
       href: "/#contact",
     },

@@ -24,21 +24,21 @@ export default function Header() {
         img: "/images/icons/artworks-icon.png",
         alt: "artwork icon",
         label:
-          "<span class='whitespace-nowrap lg:whitespace-normal md:font-[500]'>Artworks</span>",
+          "<span className='whitespace-nowrap lg:whitespace-normal md:font-[500]'>Artworks</span>",
         href: "/artworks",
       },
       item2: {
         img: "/images/icons/artist-icon.png",
         alt: "author icon",
         label:
-          "<span class='whitespace-nowrap lg:whitespace-normal md:font-[500]'>About the artist</span>",
+          "<span className='whitespace-nowrap lg:whitespace-normal md:font-[500]'>About the artist</span>",
         href: "/about",
       },
       item3: {
         img: "/images/icons/contact-icon.png",
         alt: "contact icon",
         label:
-          "<span class='whitespace-nowrap lg:whitespace-normal md:font-[500]'>Contact</span>",
+          "<span className='whitespace-nowrap lg:whitespace-normal md:font-[500]'>Contact</span>",
         href: "/contact",
       },
     };
@@ -46,12 +46,12 @@ export default function Header() {
     nav = {
       item1: {
         label:
-          "<span class='whitespace-nowrap lg:whitespace-normal'>link1</span>",
+          "<span className='whitespace-nowrap lg:whitespace-normal'>link1</span>",
         href: "books",
       },
       item2: {
         label:
-          "<span class='whitespace-nowrap lg:whitespace-normal'>link4</span>",
+          "<span className='whitespace-nowrap lg:whitespace-normal'>link4</span>",
         href: "link4",
       },
       item3: {

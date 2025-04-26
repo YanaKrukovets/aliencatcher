@@ -31,7 +31,7 @@ const HeaderBanner = () => {
           </div>
           <div className="flex mt-[10px] justify-center mx-[50px] md:flex-col">
             <div className="projects-container flex-disp">
-              <Link class="my-work-btn sm:my-[20px]" href="/game">
+              <Link className="my-work-btn sm:my-[20px]" href="/game">
                 <span></span>
                 <span></span>
                 <span></span>
@@ -40,7 +40,7 @@ const HeaderBanner = () => {
             </div>
             <div className="projects-container flex-disp">
               <Link
-                class="my-work-btn sm:my-[20px]"
+                className="my-work-btn sm:my-[20px]"
                 href="https://buymeacoffee.com/yanashellii"
                 target="_blank"
               >
