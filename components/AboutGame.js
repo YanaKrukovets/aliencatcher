@@ -44,6 +44,19 @@ const AboutGame = () => {
             Whether you&apos;re a casual explorer or a cosmic champion, Alien
             Catcher will pull you into a magical world where every catch counts.
           </p>
+          <h3 className="py-[10px] text-[20px] mt-[10px]">
+            <b>Rules:</b>
+          </h3>
+          <ul className="list-disc list-inside pl-[15px]">
+            <li>A spaceship moves left & right at the bottom</li>
+
+            <li>
+              Rocks appear from the top, move downward, and have aliens on them
+            </li>
+            <li>Aliens walk to the end of a rock and fall off</li>
+
+            <li>The goal is to catch falling aliens with the spaceship</li>
+          </ul>
         </div>
       </div>
     </div>
