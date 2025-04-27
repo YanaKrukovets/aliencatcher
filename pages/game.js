@@ -6,7 +6,6 @@ import Starfield from "../components/Starfield";
 export default function Game() {
   const [spaceshipX, setSpaceshipX] = useState(245); // Centered initially (570px width container)
   const keys = useRef({ ArrowLeft: false, ArrowRight: false });
-  const touchStartX = useRef(null);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -22,36 +21,33 @@ export default function Game() {
     };
 
     const handleTouchStart = (e) => {
-      touchStartX.current = e.touches[0].clientX;
-    };
+      const touchX = e.touches[0].clientX;
+      const screenWidth = window.innerWidth;
+      const containerWidth = Math.min(screenWidth, 570);
 
-    const handleTouchMove = (e) => {
-      if (touchStartX.current === null) return;
-      const touchEndX = e.touches[0].clientX;
-      const diff = touchStartX.current - touchEndX;
+      // Find where the container is centered
+      const containerStartX =
+        screenWidth === containerWidth
+          ? screenWidth / 2 - 80
+          : (screenWidth - containerWidth) / 2;
 
-      if (Math.abs(diff) > 30) {
-        if (diff > 0) {
-          // swipe left
-          setSpaceshipX((x) => Math.max(0, x - 50));
-        } else {
-          // swipe right
-          setSpaceshipX((x) => Math.min(570 - 80, x + 50)); // 570 container width - 80 spaceship width
-        }
-        touchStartX.current = null;
+      if (touchX < containerStartX + containerWidth / 2) {
+        // Tap on left half
+        setSpaceshipX((x) => Math.max(0, x - 50));
+      } else {
+        // Tap on right half
+        setSpaceshipX((x) => Math.min(containerWidth - 80, x + 50)); // 570 container width - 80 spaceship width
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
     window.addEventListener("touchstart", handleTouchStart);
-    window.addEventListener("touchmove", handleTouchMove);
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
       window.removeEventListener("touchstart", handleTouchStart);
-      window.removeEventListener("touchmove", handleTouchMove);
     };
   }, []);
 
@@ -108,12 +104,24 @@ export default function Game() {
                 transition: "left 0.1s",
               }}
             >
-              <Image
-                src="/images/pages/game/spaceship.png" // <-- Make sure you have this image
-                alt="Spaceship"
-                fill
-                className="object-contain"
+              {/* Glow effect */}
+              <div
+                className="absolute bottom-[-5px] left-1/2 transform -translate-x-1/2 w-12 h-8 bg-white opacity-80 rounded-full animate-pulse"
+                style={{
+                  filter: "blur(4px)",
+                  zIndex: -1,
+                }}
               />
+
+              {/* Spaceship Image */}
+              <div className="relative w-full h-full">
+                <Image
+                  src="/images/pages/game/spaceship.png"
+                  alt="Spaceship"
+                  fill
+                  className="object-contain"
+                />
+              </div>
             </div>
           </div>
         </div>
