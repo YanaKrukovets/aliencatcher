@@ -3,10 +3,27 @@ import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 
 export default function Game() {
-  const [spaceshipX, setSpaceshipX] = useState(245); // Centered initially (570px width container)
-  const [rocks, setRocks] = useState([]); // Rocks falling
+  const [spaceshipX, setSpaceshipX] = useState(245);
+  const [rocks, setRocks] = useState([]);
   const keys = useRef({ ArrowLeft: false, ArrowRight: false });
   const rockId = useRef(0);
+
+  // Disable right-click and long-press on all devices
+  useEffect(() => {
+    const preventContextMenu = (e) => e.preventDefault();
+
+    document.addEventListener("contextmenu", preventContextMenu);
+    document.addEventListener("touchstart", preventContextMenu);
+    document.addEventListener("touchend", preventContextMenu);
+    document.addEventListener("gesturestart", preventContextMenu); // Safari zoom
+
+    return () => {
+      document.removeEventListener("contextmenu", preventContextMenu);
+      document.removeEventListener("touchstart", preventContextMenu);
+      document.removeEventListener("touchend", preventContextMenu);
+      document.removeEventListener("gesturestart", preventContextMenu);
+    };
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -25,7 +42,6 @@ export default function Game() {
       const touchX = e.touches[0].clientX;
       const screenWidth = window.innerWidth;
       const containerWidth = Math.min(screenWidth, 570);
-
       const containerStartX =
         screenWidth === containerWidth
           ? screenWidth / 2 - 80
@@ -62,7 +78,7 @@ export default function Game() {
   }, []);
 
   useEffect(() => {
-    const delays = [0, 7000, 15000, 34000, 50000]; // Customize timing for each rock
+    const delays = [0, 7000, 15000, 34000, 50000];
 
     delays.forEach((delay, index) => {
       setTimeout(() => {
@@ -85,25 +101,20 @@ export default function Game() {
 
   useEffect(() => {
     const move = () => {
-      setRocks(
-        (prevRocks) =>
-          prevRocks
-            .map((rock) => ({
-              ...rock,
-              y: rock.y + rock.speed,
-            }))
-            .filter((rock) => rock.y < window.innerHeight + 100) // Remove off-screen rocks
+      setRocks((prevRocks) =>
+        prevRocks
+          .map((rock) => ({
+            ...rock,
+            y: rock.y + rock.speed,
+          }))
+          .filter((rock) => rock.y < window.innerHeight + 100)
       );
 
-      requestAnimationFrame(move); // Continue falling rocks
+      requestAnimationFrame(move);
     };
 
-    move(); // Start the continuous movement
+    move();
   }, []);
-
-  const disableRightClick = (e) => {
-    e.preventDefault(); // Prevent the context menu from opening
-  };
 
   return (
     <>
@@ -121,7 +132,6 @@ export default function Game() {
                   alt="space background"
                   fill
                   className="object-cover"
-                  onContextMenu={disableRightClick} // Disable right-click on background
                 />
               </div>
               <div className="w-full h-[100vh] relative">
@@ -130,11 +140,11 @@ export default function Game() {
                   alt="space background"
                   fill
                   className="object-cover"
-                  onContextMenu={disableRightClick} // Disable right-click on background
                 />
               </div>
             </div>
 
+            {/* Stars Layer */}
             <div className="absolute top-0 left-0 w-full h-full pointer-events-none z-[10]">
               <div id="stars"></div>
               <div id="stars2"></div>
@@ -161,7 +171,6 @@ export default function Game() {
                   alt="Rock"
                   fill
                   className="object-contain select-none pointer-events-none"
-                  onContextMenu={disableRightClick} // Disable right-click on rock images
                 />
               </div>
             ))}
@@ -190,7 +199,6 @@ export default function Game() {
                   alt="Spaceship"
                   fill
                   className="object-contain"
-                  onContextMenu={disableRightClick} // Disable right-click on spaceship
                 />
               </div>
             </div>
