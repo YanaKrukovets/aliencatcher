@@ -23,10 +23,13 @@ export default function Game() {
     const preventContextMenu = (e) => e.preventDefault();
     const preventSelection = (e) => e.preventDefault();
 
+    // Add touch event listeners with passive: false
+    const touchOptions = { passive: false };
     document.addEventListener("contextmenu", preventContextMenu);
-    document.addEventListener("touchstart", preventContextMenu);
-    document.addEventListener("touchend", preventContextMenu);
-    document.addEventListener("gesturestart", preventContextMenu);
+    document.addEventListener("touchstart", preventContextMenu, touchOptions);
+    document.addEventListener("touchend", preventContextMenu, touchOptions);
+    document.addEventListener("gesturestart", preventContextMenu, touchOptions);
+    document.addEventListener("touchmove", preventContextMenu, touchOptions);
 
     // Prevent selection on all images
     document.addEventListener("selectstart", preventSelection);
@@ -36,8 +39,19 @@ export default function Game() {
       document.removeEventListener("touchstart", preventContextMenu);
       document.removeEventListener("touchend", preventContextMenu);
       document.removeEventListener("gesturestart", preventContextMenu);
+      document.removeEventListener("touchmove", preventContextMenu);
       document.removeEventListener("selectstart", preventSelection);
     };
+  }, []);
+
+  // Initialize spaceship position based on screen size
+  useEffect(() => {
+    const screenWidth = window.innerWidth;
+    const isMobile = screenWidth < 570;
+    if (isMobile) {
+      // Center the spaceship on mobile
+      setSpaceshipX((screenWidth - 80) / 2);
+    }
   }, []);
 
   // Handle keyboard and touch input
@@ -57,24 +71,43 @@ export default function Game() {
 
       const touchX = e.touches[0].clientX;
       const screenWidth = window.innerWidth;
-      const containerWidth = Math.min(screenWidth, 570);
-      const containerStartX =
-        screenWidth === containerWidth
-          ? screenWidth / 2 - 80
-          : (screenWidth - containerWidth) / 2;
-      if (touchX < containerStartX + containerWidth / 2) {
-        setSpaceshipX((x) => Math.max(0, x - 50));
+      const isMobile = screenWidth < 570;
+      const containerWidth = isMobile ? screenWidth : 570;
+      const containerStartX = isMobile ? 0 : (screenWidth - containerWidth) / 2;
+
+      // Calculate movement based on touch position relative to screen center
+      const screenCenter = screenWidth / 2;
+      const moveAmount = 50; // Amount to move per touch
+
+      if (touchX < screenCenter) {
+        setSpaceshipX((x) => Math.max(0, x - moveAmount));
       } else {
-        setSpaceshipX((x) => Math.min(containerWidth - 80, x + 50));
+        setSpaceshipX((x) => Math.min(containerWidth - 80, x + moveAmount));
       }
     };
+
+    // Add touch event listeners with passive: false
+    const touchOptions = { passive: false };
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
-    window.addEventListener("touchstart", handleTouchStart);
+    window.addEventListener("touchstart", handleTouchStart, touchOptions);
+    window.addEventListener(
+      "touchmove",
+      (e) => e.preventDefault(),
+      touchOptions
+    );
+    window.addEventListener(
+      "touchend",
+      (e) => e.preventDefault(),
+      touchOptions
+    );
+
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
       window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchmove", (e) => e.preventDefault());
+      window.removeEventListener("touchend", (e) => e.preventDefault());
     };
   }, [centeringShip]);
 
@@ -84,8 +117,13 @@ export default function Game() {
 
     const move = () => {
       setSpaceshipX((x) => {
+        const screenWidth = window.innerWidth;
+        const isMobile = screenWidth < 570;
+        const containerWidth = isMobile ? screenWidth : 570;
+
         if (keys.current.ArrowLeft) return Math.max(0, x - 5);
-        if (keys.current.ArrowRight) return Math.min(570 - 80, x + 5);
+        if (keys.current.ArrowRight)
+          return Math.min(containerWidth - 80, x + 5);
         return x;
       });
       requestAnimationFrame(move);
@@ -93,15 +131,174 @@ export default function Game() {
     move();
   }, [gameOver, centeringShip]);
 
+  // Spawn rocks
+  useEffect(() => {
+    if (gameOver) return;
+
+    const spawnDelays = [0, 7000, 18000, 38000, 50000];
+    const startTime = performance.now();
+    const spawned = new Set();
+    const minVerticalSpacing = 150; // Minimum vertical space between rocks
+
+    const spawnLoop = (now) => {
+      const elapsed = now - startTime;
+      spawnDelays.forEach((delay, index) => {
+        if (elapsed >= delay && !spawned.has(index)) {
+          const side = index % 2 === 0 ? "left" : "right";
+          const screenWidth = window.innerWidth;
+          const isMobile = screenWidth < 570;
+          const containerWidth = isMobile ? screenWidth : 570;
+          
+          // Calculate base size and adjust for mobile
+          let size;
+          if (isMobile) {
+            // On mobile, limit size to slightly less than half screen width
+            const maxMobileWidth = (screenWidth * 0.45) / 220; // 220 is base rock width
+            size = Math.min(0.8 + Math.random() * 0.4, maxMobileWidth);
+          } else {
+            size = 0.8 + Math.random() * 0.4;
+          }
+          
+          const rockWidth = 220 * size;
+          const rockHeight = 100 * size;
+          
+          // Adjust x position based on screen size and rock size
+          let x;
+          if (side === "left") {
+            x = -15;
+          } else {
+            // Position right rocks closer to the right edge
+            const rightOffset = -10; // Distance from right edge
+            x = isMobile
+              ? containerWidth - rockWidth - rightOffset
+              : 570 - rockWidth - rightOffset;
+          }
+
+          // Check for vertical overlap with existing rocks
+          const newRockY = -80;
+          const hasOverlap = rockList.current.some((rock) => {
+            const verticalDistance = Math.abs(rock.y - newRockY);
+            return verticalDistance < minVerticalSpacing;
+          });
+
+          // Only spawn if there's no overlap
+          if (!hasOverlap) {
+            rockList.current.push({
+              id: rockId.current++,
+              side,
+              x,
+              y: newRockY,
+              speed: 0.4,
+              size,
+              width: rockWidth,
+              height: rockHeight,
+              moving: true,
+              collided: false,
+            });
+            spawned.add(index);
+          }
+        }
+      });
+      if (spawned.size < spawnDelays.length) {
+        requestAnimationFrame(spawnLoop);
+      }
+    };
+
+    requestAnimationFrame(spawnLoop);
+  }, [gameOver]);
+
+  // Rock animation + collision detection
+  useEffect(() => {
+    let animationFrame;
+
+    const moveRocks = () => {
+      const shipRect = {
+        top: window.innerHeight - 80,
+        bottom: window.innerHeight - 20,
+        left: spaceshipX,
+        right: spaceshipX + 80,
+      };
+
+      let collisionDetected = false;
+      let collisionRockId = null;
+
+      // First check for collisions
+      rockList.current.forEach((rock) => {
+        if (collisionDetected) return;
+
+        const rockRect = {
+          top: rock.y,
+          bottom: rock.y + rock.height,
+          left: rock.x,
+          right: rock.x + rock.width,
+        };
+
+        const collided = !(
+          rockRect.right < shipRect.left ||
+          rockRect.left > shipRect.right ||
+          rockRect.bottom < shipRect.top ||
+          rockRect.top > shipRect.bottom
+        );
+
+        if (collided && !centeringShip && spaceshipVisible && !rock.collided) {
+          // Record collision detection
+          collisionDetected = true;
+          collisionRockId = rock.id;
+
+          setLives((prev) => {
+            const next = prev - 1;
+            return Math.max(0, next);
+          });
+
+          // Start centering animation
+          setCenteringShip(true);
+          // Stop all rocks from moving
+          setRocksMoving(false);
+        }
+      });
+
+      // Remove the rock that collided and update positions of the rest
+      if (collisionDetected) {
+        rockList.current = rockList.current.filter(
+          (rock) => rock.id !== collisionRockId
+        );
+      }
+
+      // Move all remaining rocks
+      rockList.current = rockList.current.map((rock) => {
+        // Skip movement if rocks aren't supposed to be moving globally
+        if (!rocksMoving) {
+          return rock;
+        }
+
+        const newY = rock.y + rock.speed;
+        return { ...rock, y: newY };
+      });
+
+      // Only keep rocks that are still on screen
+      rockList.current = rockList.current.filter(
+        (rock) => rock.y < window.innerHeight + 100
+      );
+
+      setTick((t) => t + 1); // trigger re-render
+      if (!gameOver) animationFrame = requestAnimationFrame(moveRocks);
+    };
+
+    if (!gameOver) animationFrame = requestAnimationFrame(moveRocks);
+    return () => cancelAnimationFrame(animationFrame);
+  }, [spaceshipX, gameOver, spaceshipVisible, rocksMoving, centeringShip]);
+
   // Center spaceship after each hit
   useEffect(() => {
     if (!centeringShip) return;
 
     // Animate to center
-    const duration = 800; // Reduced from 1000ms to 800ms for faster centering
+    const duration = 800;
     const startTime = performance.now();
     const startX = spaceshipX;
-    const targetX = centerX;
+    const screenWidth = window.innerWidth;
+    const isMobile = screenWidth < 570;
+    const targetX = isMobile ? (screenWidth - 80) / 2 : centerX;
 
     const centerAnimation = (time) => {
       const elapsed = time - startTime;
@@ -144,7 +341,6 @@ export default function Game() {
             setSpaceshipVisible(true);
             // Resume rock movement immediately after blinking completes
             setRocksMoving(true);
-            // No need to reset collided flags since we're removing collided rocks
             setCenteringShip(false); // Allow the ship to be moved again
           }
 
@@ -155,117 +351,6 @@ export default function Game() {
       return () => clearInterval(blinkInterval);
     }
   }, [isBlinking, lives]);
-
-  // Spawn rocks
-  useEffect(() => {
-    if (gameOver) return;
-
-    const spawnDelays = [0, 7000, 18000, 38000, 50000];
-    const startTime = performance.now();
-    const spawned = new Set();
-
-    const spawnLoop = (now) => {
-      const elapsed = now - startTime;
-      spawnDelays.forEach((delay, index) => {
-        if (elapsed >= delay && !spawned.has(index)) {
-          const side = index % 2 === 0 ? "left" : "right";
-          const x = side === "left" ? -15 : 570 - 200;
-          rockList.current.push({
-            id: rockId.current++,
-            side,
-            x,
-            y: -80,
-            speed: 0.4,
-            moving: true, // Flag to track if this rock is moving
-            collided: false, // Flag to track collision state
-          });
-          spawned.add(index);
-        }
-      });
-      if (spawned.size < spawnDelays.length) {
-        requestAnimationFrame(spawnLoop);
-      }
-    };
-
-    requestAnimationFrame(spawnLoop);
-  }, [gameOver]);
-
-  // Rock animation + collision detection
-  useEffect(() => {
-    let animationFrame;
-
-    const moveRocks = () => {
-      const shipRect = {
-        top: window.innerHeight - 80,
-        bottom: window.innerHeight - 20,
-        left: spaceshipX,
-        right: spaceshipX + 80,
-      };
-
-      let collisionDetected = false;
-      let collisionRockId = null;
-
-      // First check for collisions
-      rockList.current.forEach((rock) => {
-        if (collisionDetected) return;
-
-        const rockRect = {
-          top: rock.y,
-          bottom: rock.y + 100,
-          left: rock.x,
-          right: rock.x + 220,
-        };
-
-        const collided = !(
-          rockRect.right < shipRect.left ||
-          rockRect.left > shipRect.right ||
-          rockRect.bottom < shipRect.top ||
-          rockRect.top > shipRect.bottom
-        );
-
-        if (collided && !centeringShip && spaceshipVisible && !rock.collided) {
-          // Record collision detection
-          collisionDetected = true;
-          collisionRockId = rock.id;
-          
-          setLives((prev) => {
-            const next = prev - 1;
-            return Math.max(0, next);
-          });
-
-          // Start centering animation
-          setCenteringShip(true);
-        }
-      });
-
-      // Remove the rock that collided and update positions of the rest
-      if (collisionDetected) {
-        rockList.current = rockList.current.filter(rock => rock.id !== collisionRockId);
-      }
-
-      // Move all remaining rocks
-      rockList.current = rockList.current.map((rock) => {
-        // Skip movement if rocks aren't supposed to be moving globally
-        if (!rocksMoving) {
-          return rock;
-        }
-
-        const newY = rock.y + rock.speed;
-        return { ...rock, y: newY };
-      });
-
-      // Only keep rocks that are still on screen
-      rockList.current = rockList.current.filter(
-        (rock) => rock.y < window.innerHeight + 100
-      );
-
-      setTick((t) => t + 1); // trigger re-render
-      if (!gameOver) animationFrame = requestAnimationFrame(moveRocks);
-    };
-
-    if (!gameOver) animationFrame = requestAnimationFrame(moveRocks);
-    return () => cancelAnimationFrame(animationFrame);
-  }, [spaceshipX, gameOver, spaceshipVisible, rocksMoving, centeringShip]);
 
   return (
     <>
@@ -334,10 +419,12 @@ export default function Game() {
           {rockList.current.map((rock) => (
             <div
               key={rock.id}
-              className="absolute w-[220px] h-[100px] z-20"
+              className="absolute z-20"
               style={{
                 left: rock.x,
                 top: rock.y,
+                width: rock.width,
+                height: rock.height,
                 transition: "top 0.05s",
               }}
             >
