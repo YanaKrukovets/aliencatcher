@@ -5,14 +5,18 @@ const NAV_HEIGHT = 90;
 const HUD_HEIGHT = 60;
 const GAME_MAX_WIDTH = 800;
 
-const LEVEL_COLORS = ["#64C8FF", "#CC88FF", "#FF6060", "#60FFC0"];
-const getLevelColor = (lvl) => LEVEL_COLORS[Math.min(lvl - 1, LEVEL_COLORS.length - 1)];
+const LEVEL_COLORS = ["#64C8FF", "#CC88FF", "#FF6060", "#60FFC0", "#FFB84D", "#88DDFF", "#FF88CC", "#60FFB0"];
+const getLevelColor = (lvl) => LEVEL_COLORS[(lvl - 1) % LEVEL_COLORS.length];
 
 const LEVEL_PALETTES = [
-  { bg: ["#06091c", "#0e1035", "#150d2e", "#1a0828"] }, // 1: blue/indigo
-  { bg: ["#110015", "#220030", "#2a0045", "#1a0030"] }, // 2: deep purple
-  { bg: ["#1a0008", "#2e0412", "#200210", "#150005"] }, // 3: crimson
-  { bg: ["#001518", "#002835", "#001e28", "#001015"] }, // 4+: teal
+  { bg: ["#06091c", "#0e1035", "#150d2e", "#1a0828"] }, // blue/indigo
+  { bg: ["#110015", "#220030", "#2a0045", "#1a0030"] }, // deep violet
+  { bg: ["#1a0008", "#2e0412", "#200210", "#150005"] }, // crimson void
+  { bg: ["#001518", "#002835", "#001e28", "#001015"] }, // teal cosmos
+  { bg: ["#1a0e00", "#2e1800", "#1e1200", "#100800"] }, // amber nebula
+  { bg: ["#001020", "#001e3a", "#001530", "#000c20"] }, // arctic blue
+  { bg: ["#1a0015", "#300025", "#250018", "#15000f"] }, // rose cosmos
+  { bg: ["#05130d", "#0a2218", "#081a12", "#040e08"] }, // emerald space
 ];
 
 export default function Game() {
@@ -65,16 +69,20 @@ export default function Game() {
     let particles = [];
     let stars = [];
     let nebulaClouds = [];
-    let rockTimer = 0;
+    let rockTimer = 9999; // spawn first rock immediately
     let animFrameId = null;
     let levelUpTimerId = null;
     let readyFrames = 180; // 3-second countdown at 60fps
     let lastCountdownShown = 3;
     setCountdown(3);
 
-    const getRockInterval = () => Math.max(60, 220 - (levelVal - 1) * 20);
-    const getAlienSpeed = () => 0.8 + (levelVal - 1) * 0.2;
-    const getRockSpeed = () => 0.6 + (levelVal - 1) * 0.15;
+    const getRockInterval = () => {
+      if (levelVal <= 1) return 220;
+      if (levelVal <= 3) return 260;
+      return Math.max(55, 220 - (levelVal - 1) * 20);
+    };
+    const getAlienSpeed = () => 1 + (levelVal - 1) * 0.2;
+    const getRockSpeed = () => 0.8 + (levelVal - 1) * 0.2;
 
     const distantPlanets = [
       { x: 90, y: 90, radius: 34, color: "#c97bde", glowColor: "rgba(180,80,220,0.35)", rings: true },
@@ -157,8 +165,12 @@ export default function Game() {
           this.x = canvas.width - this.width;
         }
         this.y = -this.height;
-        this.speed = getRockSpeed() + Math.random() * 0.5;
-        this.hasAlien = Math.random() > 0.35;
+        const speedVariance = levelVal >= 5 ? Math.random() * 0.6 : 0;
+        this.speed = getRockSpeed() + speedVariance;
+        const alienChance = levelVal === 1 ? 0.75 : levelVal === 2 ? 0.65 : 0.78;
+        this.hasAlien = Math.random() < alienChance;
+        const multiChance = levelVal === 2 ? 0.25 : levelVal === 3 ? 0.4 : levelVal >= 4 ? 0.55 : 0;
+        this.alienCount = this.hasAlien && Math.random() < multiChance ? (Math.random() < 0.4 ? 3 : 2) : 1;
         this.scale = 0;
       }
 
@@ -202,17 +214,19 @@ export default function Game() {
     }
 
     class Alien {
-      constructor(rock) {
+      constructor(rock, index = 0) {
         this.rock = rock;
         this.width = 30;
         this.height = 35;
-        this.x = rock.side === "right" ? rock.x + rock.width - 40 : rock.x + 10;
+        const spacing = 36;
+        const baseX = rock.side === "right" ? rock.x + rock.width - 40 : rock.x + 10;
+        this.x = baseX + index * spacing * (rock.side === "right" ? -1 : 1);
         this.y = rock.y - this.height;
         this.onRock = true;
         this.direction = rock.side === "right" ? -1 : 1;
         this.walkSpeed = getAlienSpeed();
         this.fallSpeed = 0;
-        this.gravity = 0.04;
+        this.gravity = this.rock.speed * 0.07;
         this.scale = 1;
         this.legAnim = 0;
         this.armAnim = 0;
@@ -242,7 +256,7 @@ export default function Game() {
 
           if (this.x < this.rock.x || this.x + this.width > this.rock.x + this.rock.width) {
             this.onRock = false;
-            this.fallSpeed = this.rock.speed * 0.3;
+            this.fallSpeed = this.rock.speed * 0.5;
             this.rotationSpeed = this.direction * 0.1;
           }
         } else {
@@ -331,8 +345,8 @@ export default function Game() {
       isDoneBeingCaught() { return this.caught && this.catchScale >= 2; }
 
       checkCatch() {
-        return this.x + this.width / 2 - 10 > ship.x &&
-               this.x + this.width / 2 + 10 < ship.x + ship.width &&
+        return this.x < ship.x + ship.width &&
+               this.x + this.width > ship.x &&
                this.y + this.height > ship.y &&
                this.y < ship.y + ship.height;
       }
@@ -359,7 +373,7 @@ export default function Game() {
     // ---- DRAW ----
 
     function drawBackground() {
-      const pal = LEVEL_PALETTES[Math.min(levelVal - 1, LEVEL_PALETTES.length - 1)];
+      const pal = LEVEL_PALETTES[(levelVal - 1) % LEVEL_PALETTES.length];
       const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
       grad.addColorStop(0,   pal.bg[0]);
       grad.addColorStop(0.3, pal.bg[1]);
@@ -673,7 +687,9 @@ export default function Game() {
         rockTimer = 0;
         const rock = new Rock();
         rocks.push(rock);
-        if (rock.hasAlien) aliens.push(new Alien(rock));
+        if (rock.hasAlien) {
+          for (let i = 0; i < rock.alienCount; i++) aliens.push(new Alien(rock, i));
+        }
       }
 
       rocks = rocks.filter((rock) => {

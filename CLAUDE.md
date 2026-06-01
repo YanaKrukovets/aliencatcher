@@ -3,7 +3,9 @@
 ## Project Overview
 Space arcade game built with **Next.js 13 + Tailwind CSS**. Players control a spaceship on an HTML5 canvas, dodge rocks, and catch/destroy aliens. The site also has a landing page with About, Contact, and game info sections.
 
-Planned future features: multiple levels with increasing difficulty, multiplayer (2+ players on same device or online), power-ups and upgrades, leaderboard.
+Completed features: multiple levels with dynamic difficulty scaling (speed, spawn rates, color palettes per level), level-up banner/animation, countdown timer at game start.
+
+Planned future features: multiplayer (2+ players on same device or online), power-ups and upgrades, leaderboard.
 
 ## Tech Stack
 - **Framework**: Next.js 13 (Pages Router)
@@ -17,20 +19,31 @@ Planned future features: multiple levels with increasing difficulty, multiplayer
 ## Key Files
 | File | Purpose |
 |------|---------|
-| `pages/game.js` | Full canvas game loop — ship, aliens, rocks, particles, scoring |
+| `pages/game.js` | Full canvas game loop — ship, aliens, rocks, particles, scoring, levels |
 | `pages/index.js` | Landing page |
+| `pages/404.js` | Custom 404 page |
+| `pages/500.js` | Custom 500 page |
 | `components/Header.js` | Site header |
-| `components/Navbar.js` | Navigation bar |
+| `components/Navbar.js` | Navigation bar with language toggle |
+| `components/NavLangToggle.js` | Language switcher (EN/FR) |
 | `components/HomeBanner.js` | Hero section |
 | `components/AboutGame.js` | Game description section |
+| `components/About.js` | About section |
+| `components/Contact.js` | Contact form (Formspree) |
+| `components/Footer.js` | Site footer |
+| `components/Layout.js` | Page layout wrapper |
+| `components/BackToTopButton.js` | Scroll-to-top button |
+| `components/Starfield.js` | Animated star background for landing page |
 | `locales/en.js` | English strings |
 | `locales/fr.js` | French strings |
-| `alien-rescue-game.html` | Standalone prototype (not used in Next.js build) |
+| `styles/` | SCSS per-component and per-page stylesheets |
 
 ## Architecture Notes
-- `pages/game.js` uses a single large `useEffect` containing the full game loop — keep game state in `let` vars inside the effect, React state only for UI overlay (score, lives, game-over screen).
-- Adding a new level = new difficulty config object + swap it in when score threshold is reached.
+- `pages/game.js` uses a single large `useEffect` containing the full game loop — keep game state in `let` vars inside the effect, React state only for UI overlay (score, lives, level, game-over screen).
+- Level progression: level 1→2 at 30 pts, then every 50 pts (`scoreVal < 30 ? 1 : Math.floor((scoreVal - 30) / 50) + 2`). Each level increases alien/rock speed, tightens spawn intervals, and switches color palettes (`LEVEL_PALETTES`/`LEVEL_COLORS`).
+- Multi-alien spawns activate at level 2+ via `multiChance`; speed variance adds at level 5+.
 - Multiplayer (future) will need to extract ship logic into a reusable factory and manage multiple input sources (keyboard zones or WebSocket).
+- `alien-rescue-game.html` (standalone prototype) is no longer in the repo — reference only in git history.
 
 ## Commands
 
