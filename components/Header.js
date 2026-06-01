@@ -23,35 +23,30 @@ export default function Header() {
       item1: {
         img: "/images/icons/artworks-icon.png",
         alt: "artwork icon",
-        label:
-          "<span className='whitespace-nowrap lg:whitespace-normal md:font-[500]'>Artworks</span>",
+        label: "Artworks",
         href: "/artworks",
       },
       item2: {
         img: "/images/icons/artist-icon.png",
         alt: "author icon",
-        label:
-          "<span className='whitespace-nowrap lg:whitespace-normal md:font-[500]'>About the artist</span>",
+        label: "About the artist",
         href: "/about",
       },
       item3: {
         img: "/images/icons/contact-icon.png",
         alt: "contact icon",
-        label:
-          "<span className='whitespace-nowrap lg:whitespace-normal md:font-[500]'>Contact</span>",
+        label: "Contact",
         href: "/contact",
       },
     };
   } else {
     nav = {
       item1: {
-        label:
-          "<span className='whitespace-nowrap lg:whitespace-normal'>link1</span>",
+        label: "link1",
         href: "books",
       },
       item2: {
-        label:
-          "<span className='whitespace-nowrap lg:whitespace-normal'>link4</span>",
+        label: "link4",
         href: "link4",
       },
       item3: {
@@ -135,13 +130,14 @@ export default function Header() {
                           priority={true}
                         />
                         <span
-                          className={`desktop-nav-text ${
+                          className={`desktop-nav-text whitespace-nowrap lg:whitespace-normal ${
                             locale === "en"
-                              ? "!flex flex-col xmd:inline-block"
+                              ? "!flex flex-col xmd:inline-block md:font-[500]"
                               : ""
                           }`}
-                          dangerouslySetInnerHTML={{ __html: item.label }}
-                        ></span>
+                        >
+                          {item.label}
+                        </span>
                       </Link>
                     </div>
                   );
@@ -170,15 +166,16 @@ export default function Header() {
                           }
                         >
                           <span
-                            className={`mobile-nav-text ${
+                            className={`mobile-nav-text whitespace-nowrap lg:whitespace-normal ${locale === "en" ? "md:font-[500]" : ""} ${
                               index === 0
                                 ? "max-w-[200px]"
                                 : index === 1 && locale === "en"
                                 ? "xmd:max-w-[240px]"
                                 : ""
                             }`}
-                            dangerouslySetInnerHTML={{ __html: item.label }}
-                          ></span>
+                          >
+                            {item.label}
+                          </span>
                         </Link>
                       )}
                     </div>

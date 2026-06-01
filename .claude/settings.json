@@ -1,0 +1,21 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const f=process.env.CLAUDE_FILE||''; if(f.includes('pages/game.js')) { console.log('[hook] game.js changed — run yarn dev and open localhost:3000/game to test'); }\"",
+            "blocking": false
+          },
+          {
+            "type": "command",
+            "command": "node -e \"const f=process.env.CLAUDE_FILE||''; if(f.includes('locales/en.js')) { console.log('[hook] en.js updated — remember to add the matching key in locales/fr.js'); }\"",
+            "blocking": false
+          }
+        ]
+      }
+    ]
+  }
+}

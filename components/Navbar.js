@@ -16,26 +16,22 @@ export default function Navbar() {
 
   nav = {
     item1: {
-      label:
-        "<span className='whitespace-nowrap lg:whitespace-normal text-[20px]'>About the Game</span>",
+      label: "About the Game",
       aria: "Link About game Alien Catcher — A Cosmic Watercolor Adventure",
       href: "/#aboutgame",
     },
     item2: {
-      label:
-        "<span className='whitespace-nowrap lg:whitespace-normal text-[20px]'>Game</span>",
+      label: "Game",
       aria: "Link to Yana Krukovets game Alien Catcher — A Cosmic Watercolor Adventure",
       href: "/game",
     },
     item3: {
-      label:
-        "<span className='whitespace-nowrap lg:whitespace-normal text-[20px]'>About the Author</span>",
+      label: "About the Author",
       aria: "Link About Yana Krukovets",
       href: "/#about",
     },
     item4: {
-      label:
-        "<span className='whitespace-nowrap lg:whitespace-normal text-[20px]'>Contact</span>",
+      label: "Contact",
       aria: "Link to Contact Yana Krukovets",
       href: "/#contact",
     },
@@ -103,10 +99,9 @@ export default function Navbar() {
                           router.pathname == "/" + item.href ? "active" : ""
                         } text-white  hover:underline menu-a`}
                       >
-                        <span
-                          className="!flex flex-col xmd:inline-block"
-                          dangerouslySetInnerHTML={{ __html: item.label }}
-                        ></span>
+                        <span className="!flex flex-col xmd:inline-block whitespace-nowrap lg:whitespace-normal text-[20px]">
+                          {item.label}
+                        </span>
                       </Link>
                     </div>
                   );
@@ -136,15 +131,16 @@ export default function Navbar() {
                           }
                         >
                           <span
-                            className={`mobile-nav-text ${
+                            className={`mobile-nav-text whitespace-nowrap lg:whitespace-normal text-[20px] ${
                               index === 0
                                 ? "max-w-[200px]"
                                 : index === 1
                                 ? "xmd:max-w-[240px]"
                                 : ""
                             }`}
-                            dangerouslySetInnerHTML={{ __html: item.label }}
-                          ></span>
+                          >
+                            {item.label}
+                          </span>
                         </Link>
                       )}
                     </div>
