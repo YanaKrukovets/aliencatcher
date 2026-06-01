@@ -17,12 +17,12 @@ export default function Navbar() {
   nav = {
     item1: {
       label: "About the Game",
-      aria: "Link About game Alien Catcher — A Cosmic Watercolor Adventure",
+      aria: "Link About game Alifallx: Don't Leave Them Behind",
       href: "/#aboutgame",
     },
     item2: {
       label: "Game",
-      aria: "Link to Yana Krukovets game Alien Catcher — A Cosmic Watercolor Adventure",
+      aria: "Link to Yana Krukovets game Alifallx: Don't Leave Them Behind",
       href: "/game",
     },
     item3: {

@@ -1,4 +1,4 @@
-# Alien Catcher — Claude Code Guide
+# Alifallx: Don't Leave Them Behind — Claude Code Guide
 
 ## Project Overview
 Space arcade game built with **Next.js 13 + Tailwind CSS**. Players control a spaceship on an HTML5 canvas, dodge rocks, and catch/destroy aliens. The site also has a landing page with About, Contact, and game info sections.
@@ -78,7 +78,7 @@ Configured in `.claude/settings.json`:
 - Game loop variables live inside `useEffect` as `let` — do not lift them to React state unless they appear in JSX
 - New visual elements go in the main `draw()` function, new logic in `update()`
 - Keep collision detection functions pure (take coords/sizes, return bool)
-- String copy: always go through `locales/` — no hardcoded UI text
+- String copy: landing-page UI text goes through `locales/`; game overlay text (score, level, HUD) lives directly in `pages/game.js`
 - No TypeScript in game files (`.js`) — the project uses TS only for config files
 
 ## Running & Testing

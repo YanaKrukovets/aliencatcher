@@ -12,7 +12,7 @@ function ContactForm() {
   }
 
   return (
-    <div id="contact" className="py-[40px] font-roboto">
+    <div id="contact" className="py-[40px] font-roboto" style={{ borderTop: "1px solid rgba(100,200,255,0.12)", color: "#e8f4ff" }}>
       <div className="max-w-wrapper px-5 mx-auto  py-[20px] ">
         <form
           onSubmit={handleSubmit}
@@ -21,7 +21,7 @@ function ContactForm() {
         >
           <fieldset>
             <legend>
-              <h2 className="pb-[10px] text-[27px]">
+              <h2 className="pb-[10px] text-[27px]" style={{ color: "#64C8FF" }}>
                 <b>Have a question?</b>
               </h2>
             </legend>

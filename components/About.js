@@ -19,7 +19,7 @@ const About = () => {
             />
           </div>
           <div className="max-w-[65%] md:max-w-full md:mt-[10px]">
-            <h3 className="pb-[10px] text-[20px]">
+            <h3 className="pb-[10px] text-[20px]" style={{ color: "#64C8FF" }}>
               <b>Who am I?</b>
             </h3>
             <p>
@@ -28,7 +28,7 @@ const About = () => {
               bringing ideas to life in the browser.
             </p>
 
-            <h3 className="pb-[10px] pt-[20px] text-[20px]">
+            <h3 className="pb-[10px] pt-[20px] text-[20px]" style={{ color: "#64C8FF" }}>
               <b>Skills</b>
             </h3>
             <p>
@@ -36,7 +36,7 @@ const About = () => {
               Bootstrap, Wordpress, Tilda, Sanity, Liquid script, PHP, mySQL
             </p>
 
-            <h3 className="pb-[10px] pt-[20px] text-[20px]">
+            <h3 className="pb-[10px] pt-[20px] text-[20px]" style={{ color: "#64C8FF" }}>
               <b>Experience</b>
             </h3>
             <p>
@@ -74,7 +74,7 @@ const About = () => {
               Dnipro, Ukraine
             </p>
 
-            <h3 className="pb-[10px] pt-[20px] text-[20px]">
+            <h3 className="pb-[10px] pt-[20px] text-[20px]" style={{ color: "#64C8FF" }}>
               <b>Hobbies</b>
             </h3>
             <p>
@@ -96,7 +96,7 @@ const About = () => {
           <a
             href="https://www.instagram.com/aliencatcher2025/"
             target="_blanc"
-            aria-label="Link to alien catcher instagram account"
+            aria-label="Link to Alifallx instagram account"
           >
             <AiFillInstagram className="social-media" role="presentation" />
           </a>

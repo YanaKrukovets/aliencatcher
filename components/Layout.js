@@ -26,7 +26,7 @@ export default function Layout({ children }) {
 
         <meta property="og:url" content="http://www.aliencatcher.com/" />
         <meta property="og:type" content="website" />
-        <meta property="og:title" content="Yana Krukovets alien catcher game" />
+        <meta property="og:title" content="Yana Krukovets Alifallx: Don't Leave Them Behind" />
         <meta
           property="og:description"
           content="Yana Krukovets. Front-end web developer. HTML, CSS, JavaScript, ReactJS, Next.js, Tailwind.css, jQuery,

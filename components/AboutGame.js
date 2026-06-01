@@ -2,14 +2,14 @@ import React from "react";
 
 const AboutGame = () => {
   return (
-    <div id="aboutgame" className="font-roboto py-[60px]">
+    <div id="aboutgame" className="font-roboto py-[60px]" style={{ borderTop: "1px solid rgba(100,200,255,0.12)" }}>
       <div>
         <div className="max-w-wrapper px-5 mx-auto py-[20px] max-w-[65%] md:max-w-full">
-          <h2 className="pb-[10px] text-[27px]">
-            <b>Alien Catcher — A Cosmic Watercolor Adventure</b>
+          <h2 className="pb-[10px] text-[27px]" style={{ color: "#64C8FF" }}>
+            <b>Alifallx: Don't Leave Them Behind</b>
           </h2>
           <p className="mt-[10px]">
-            Step into the colorful cosmos in Alien Catcher, a charming
+            Step into the colorful cosmos in Alifallx, a charming
             hand-painted browser game where you pilot a quirky spaceship on a
             mission to rescue wayward aliens scattered across the stars!
           </p>
@@ -27,7 +27,7 @@ const AboutGame = () => {
             miracle.
           </p>
 
-          <h3 className="py-[10px] text-[20px] mt-[10px]">
+          <h3 className="py-[10px] text-[20px] mt-[10px]" style={{ color: "#64C8FF" }}>
             <b>Features:</b>
           </h3>
           <ul className="list-disc list-inside pl-[15px]">
@@ -41,10 +41,10 @@ const AboutGame = () => {
             <li>Collectible alien types with fun bios and animations</li>
           </ul>
           <p className="mt-[15px]">
-            Whether you&apos;re a casual explorer or a cosmic champion, Alien
-            Catcher will pull you into a magical world where every catch counts.
+            Whether you&apos;re a casual explorer or a cosmic champion, Alifallx
+            will pull you into a magical world where every catch counts.
           </p>
-          <h3 className="py-[10px] text-[20px] mt-[10px]">
+          <h3 className="py-[10px] text-[20px] mt-[10px]" style={{ color: "#64C8FF" }}>
             <b>Rules:</b>
           </h3>
           <ul className="list-disc list-inside pl-[15px]">

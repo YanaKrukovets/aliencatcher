@@ -10,20 +10,19 @@ export default function Home(props) {
     <>
       <Head>
         <title>
-          Alien Catcher — A Cosmic Watercolor Adventure. Browser Game by Yana
+          Alifallx: Don't Leave Them Behind. Browser Game by Yana
           Krukovets.
         </title>
         <meta
           name="description"
-          content="Alien Catcher — A Cosmic Watercolor Adventure. Browser Game by Yana Krukovets. Front-End Web Developer | Portfolio. Ottawa, Canada"
+          content="Alifallx: Don't Leave Them Behind. Browser Game by Yana Krukovets. Front-End Web Developer | Portfolio. Ottawa, Canada"
         />
       </Head>
       <div className="headerbanner">
         <HeaderBanner />
       </div>
-      <div className="max-w-inner xxxl:px-0">
+      <div style={{ background: "linear-gradient(180deg, #1a0828 0%, #06091c 100%)", color: "#e8f4ff" }}>
         <AboutGame />
-
         <About />
         <ContactForm />
       </div>
