@@ -60,13 +60,6 @@ Re-scan the project structure and update this CLAUDE.md:
 - Note any new planned features or completed ones
 - Keep the file concise — no padding, no obvious statements
 
-### /review-game
-Focused review of `pages/game.js`:
-- Memory leaks (event listeners, animation frames not cleaned up)
-- Performance issues in the render loop
-- Logic bugs in collision detection
-- Suggest refactors only if clearly needed
-
 ## Hooks (auto-behaviors)
 
 Configured in `.claude/settings.json`:

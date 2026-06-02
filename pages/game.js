@@ -114,8 +114,14 @@ export default function Game() {
   const [countdown, setCountdown] = useState(null);
   const [restartKey, setRestartKey] = useState(0);
   const [levelUpBanner, setLevelUpBanner] = useState(null);
+  const [isMissionComplete, setIsMissionComplete] = useState(false);
+  const [eggWasShot, setEggWasShot] = useState(false);
   const buyBulletsRef = useRef(false);
   const buyLivesRef = useRef(false);
+  const soundEnabledRef = useRef(true);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const audioCtxRef = useRef(null);
+  const bgGainRef = useRef(null);
 
   useEffect(() => {
     if (gameStarted && !isGameOver) {
@@ -127,6 +133,7 @@ export default function Game() {
   }, [gameStarted, isGameOver]);
 
   const handleRestart = () => {
+    window.scrollTo({ top: 0, behavior: "instant" });
     setScore(0);
     setCoins(0);
     setBullets(10);
@@ -134,6 +141,8 @@ export default function Game() {
     setHalfDamage(false);
     setLevel(1);
     setIsGameOver(false);
+    setIsMissionComplete(false);
+    setEggWasShot(false);
     setCountdown(null);
     setLevelUpBanner(null);
     setRestartKey((k) => k + 1);
@@ -180,7 +189,7 @@ export default function Game() {
     setCountdown(3);
 
     const BULLET_BUY_COUNT = 5;
-    const BULLET_BUY_COST = 20;
+    const BULLET_BUY_COST = 30;
     let pauseFrames = 0;
     let buyFlashFrames = 0;
     let buyFlashText = "";
@@ -206,6 +215,415 @@ export default function Game() {
     let coinRainSpawnTimer = 0;
     let coinRainCoinsTimer = 0;
     let coinParticles = [];
+    let gravityWell = null;
+    let gravityWellTimer = 0;
+    let lastEgg = null;
+    let lastEggSpawned = false;
+    let scrambleFrames = 0;
+    let scrambleWarnFrames = 0;
+    let scrambleTimer = 0;
+    let damagedFrames = 0;
+    let fireworksFrames = 0;
+    let fireworkShells = [];
+    let fireworkParticles = [];
+    let winMusicActive = false;
+
+    // ---- SOUNDS ----
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    audioCtxRef.current = audioCtx;
+    const snd = (fn) => { if (soundEnabledRef.current) fn(); };
+
+    const playShoot = () => snd(() => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.connect(g); g.connect(audioCtx.destination);
+      o.frequency.setValueAtTime(900, audioCtx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.08);
+      g.gain.setValueAtTime(0.22, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
+      o.start(audioCtx.currentTime); o.stop(audioCtx.currentTime + 0.08);
+    });
+
+    const playCatch = (isGolden, isQueen) => snd(() => {
+      const freqs = isQueen ? [880, 1320, 1760] : isGolden ? [660, 990, 1320] : [880, 1108];
+      freqs.forEach((freq, i) => {
+        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.connect(g); g.connect(audioCtx.destination);
+        o.type = "sine"; o.frequency.value = freq;
+        const t = audioCtx.currentTime + i * 0.07;
+        g.gain.setValueAtTime(0.28, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+        o.start(t); o.stop(t + 0.22);
+      });
+    });
+
+    const playHit = () => snd(() => {
+      const n = Math.floor(audioCtx.sampleRate * 0.18);
+      const buf = audioCtx.createBuffer(1, n, audioCtx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+      const src = audioCtx.createBufferSource(), g = audioCtx.createGain();
+      src.buffer = buf; src.connect(g); g.connect(audioCtx.destination);
+      g.gain.setValueAtTime(0.5, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
+      src.start(audioCtx.currentTime);
+    });
+
+    const playExplosion = () => snd(() => {
+      const n = Math.floor(audioCtx.sampleRate * 0.25);
+      const buf = audioCtx.createBuffer(1, n, audioCtx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 0.6);
+      const src = audioCtx.createBufferSource(), g = audioCtx.createGain();
+      src.buffer = buf; src.connect(g); g.connect(audioCtx.destination);
+      g.gain.setValueAtTime(0.38, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+      src.start(audioCtx.currentTime);
+    });
+
+    const playMeteorExplosion = () => snd(() => {
+      // big fiery boom: long shaped noise + low sub thud
+      const dur = 0.45;
+      const n = Math.floor(audioCtx.sampleRate * dur);
+      const buf = audioCtx.createBuffer(1, n, audioCtx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 0.4);
+      const src = audioCtx.createBufferSource(), ng = audioCtx.createGain();
+      src.buffer = buf; ng.gain.value = 0.55;
+      src.connect(ng); ng.connect(audioCtx.destination);
+      src.start(audioCtx.currentTime);
+
+      const sub = audioCtx.createOscillator(), sg = audioCtx.createGain();
+      sub.type = "sine";
+      sub.frequency.setValueAtTime(90, audioCtx.currentTime);
+      sub.frequency.exponentialRampToValueAtTime(28, audioCtx.currentTime + 0.18);
+      sg.gain.setValueAtTime(0.7, audioCtx.currentTime);
+      sg.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.22);
+      sub.connect(sg); sg.connect(audioCtx.destination);
+      sub.start(audioCtx.currentTime); sub.stop(audioCtx.currentTime + 0.23);
+    });
+
+    const playMeteorImpact = () => snd(() => {
+      // heavy ship-hit: deep sine thud + distorted noise crunch
+      const sub = audioCtx.createOscillator(), sg = audioCtx.createGain();
+      sub.type = "sawtooth";
+      sub.frequency.setValueAtTime(120, audioCtx.currentTime);
+      sub.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.25);
+      sg.gain.setValueAtTime(0.9, audioCtx.currentTime);
+      sg.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+      sub.connect(sg); sg.connect(audioCtx.destination);
+      sub.start(audioCtx.currentTime); sub.stop(audioCtx.currentTime + 0.31);
+
+      const n = Math.floor(audioCtx.sampleRate * 0.2);
+      const buf = audioCtx.createBuffer(1, n, audioCtx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+      const src = audioCtx.createBufferSource(), ng = audioCtx.createGain();
+      src.buffer = buf; ng.gain.value = 0.45;
+      src.connect(ng); ng.connect(audioCtx.destination);
+      src.start(audioCtx.currentTime);
+    });
+
+    const playMeteorStormWarning = () => snd(() => {
+      // deep rumble sweep: low sine rises then fades
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = "sawtooth";
+      o.frequency.setValueAtTime(40, audioCtx.currentTime);
+      o.frequency.linearRampToValueAtTime(80, audioCtx.currentTime + 0.4);
+      o.frequency.linearRampToValueAtTime(55, audioCtx.currentTime + 0.8);
+      g.gain.setValueAtTime(0, audioCtx.currentTime);
+      g.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.15);
+      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.9);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(audioCtx.currentTime); o.stop(audioCtx.currentTime + 0.95);
+    });
+
+    const playLevelUp = () => snd(() => {
+      [523, 659, 784, 1047].forEach((freq, i) => {
+        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.connect(g); g.connect(audioCtx.destination);
+        o.type = "sine"; o.frequency.value = freq;
+        const t = audioCtx.currentTime + i * 0.1;
+        g.gain.setValueAtTime(0.28, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+        o.start(t); o.stop(t + 0.28);
+      });
+    });
+
+    const playRockHit = () => snd(() => {
+      // metallic clank: high triangle ping + noise burst
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = "triangle";
+      o.frequency.setValueAtTime(480, audioCtx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.06);
+      g.gain.setValueAtTime(0.35, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(audioCtx.currentTime); o.stop(audioCtx.currentTime + 0.08);
+
+      const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.06, audioCtx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+      const ns = audioCtx.createBufferSource(), ng = audioCtx.createGain();
+      ns.buffer = buf; ng.gain.value = 0.18;
+      ns.connect(ng); ng.connect(audioCtx.destination);
+      ns.start(audioCtx.currentTime);
+    });
+
+    const playGameOver = () => snd(() => {
+      [440, 370, 294, 220].forEach((freq, i) => {
+        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.connect(g); g.connect(audioCtx.destination);
+        o.type = "sawtooth"; o.frequency.value = freq;
+        const t = audioCtx.currentTime + i * 0.22;
+        g.gain.setValueAtTime(0.22, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+        o.start(t); o.stop(t + 0.45);
+      });
+    });
+
+    const playWin = () => snd(() => {
+      // Triumphant fanfare: rising chord arpeggio + sustained chords
+      const fanfare = [523, 659, 784, 1047, 1319, 1568];
+      fanfare.forEach((freq, i) => {
+        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.connect(g); g.connect(audioCtx.destination);
+        o.type = "sine"; o.frequency.value = freq;
+        const t = audioCtx.currentTime + i * 0.1;
+        g.gain.setValueAtTime(0.3, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+        o.start(t); o.stop(t + 0.6);
+      });
+      // Sustained harmony underneath
+      [[523, 0.5], [659, 0.6], [784, 0.7]].forEach(([freq, delay]) => {
+        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.connect(g); g.connect(audioCtx.destination);
+        o.type = "triangle"; o.frequency.value = freq;
+        const t = audioCtx.currentTime + delay;
+        g.gain.setValueAtTime(0.18, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 1.1);
+        o.start(t); o.stop(t + 1.2);
+      });
+    });
+
+    // ---- BACKGROUND MUSIC ----
+    const bgGain = audioCtx.createGain();
+    bgGain.gain.value = soundEnabledRef.current ? 0.18 : 0;
+    bgGain.connect(audioCtx.destination);
+    bgGainRef.current = bgGain;
+
+    // Helper: play a pitched note through bgGain
+    const playBgNote = (freq, type, vol, dur) => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = type; o.frequency.value = freq;
+      o.connect(g); g.connect(bgGain);
+      g.gain.setValueAtTime(vol, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+      o.start(audioCtx.currentTime); o.stop(audioCtx.currentTime + dur + 0.01);
+    };
+
+    // Kick: sine pitch-drop (150→40 Hz)
+    const playBgKick = () => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = "sine";
+      o.frequency.setValueAtTime(150, audioCtx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.08);
+      g.gain.setValueAtTime(0.8, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
+      o.connect(g); g.connect(bgGain);
+      o.start(audioCtx.currentTime); o.stop(audioCtx.currentTime + 0.13);
+    };
+
+    // Snare: filtered white noise burst
+    const playBgSnare = () => {
+      const bufLen = Math.floor(audioCtx.sampleRate * 0.09);
+      const buf = audioCtx.createBuffer(1, bufLen, audioCtx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < bufLen; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / bufLen);
+      const src = audioCtx.createBufferSource(), sg = audioCtx.createGain();
+      src.buffer = buf; sg.gain.value = 0.28;
+      src.connect(sg); sg.connect(bgGain);
+      src.start(audioCtx.currentTime);
+    };
+
+    // Hi-hat: very short noise tick
+    const playBgHat = () => {
+      const bufLen = Math.floor(audioCtx.sampleRate * 0.025);
+      const buf = audioCtx.createBuffer(1, bufLen, audioCtx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < bufLen; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / bufLen);
+      const src = audioCtx.createBufferSource(), hg = audioCtx.createGain();
+      src.buffer = buf; hg.gain.value = 0.1;
+      src.connect(hg); hg.connect(bgGain);
+      src.start(audioCtx.currentTime);
+    };
+
+    // 4-bar supercycle: bars 0,2 = main melody A; bar 1 = variation B; bar 3 = fill C
+    const PATTERN_CYCLE = [0, 1, 0, 2];
+
+    // Each phase has 3 melody patterns, 2 bass lines, a counter-melody voice
+    const MUSIC_PHASES = [
+      { // Level 1-2: C major, bright, 155 BPM
+        bpm: 155, hatEvery: 2,
+        melodies: [
+          [523,null,659,null,784,659,null,523, 440,null,523,null,659,784,659,null],   // A: bouncy C-E-G
+          [784,659,784,null,1047,null,784,659, 587,null,698,587,null,523,587,null],   // B: high run
+          [659,null,null,587,523,null,587,null, 659,null,523,null,440,null,392,null], // C: sparse answer
+        ],
+        bass: [
+          [131,null,131,null,131,null,131,null, 110,null,110,null,131,null,131,null],       // root
+          [131,165,null,196,null,175,165,null, 110,131,null,165,null,147,131,null],         // walking
+        ],
+        counter: { steps:[2,10], freqs:[1047,880], prob:0.55 },
+        chords: [[523,659,784],[440,523,659]],
+      },
+      { // Level 3-5: D minor, tense, 168 BPM
+        bpm: 168, hatEvery: 2,
+        melodies: [
+          [587,null,698,null,880,698,null,587, 523,null,587,null,698,880,698,null],
+          [880,698,880,null,1047,null,880,698, 784,null,880,784,null,698,784,null],
+          [698,null,null,659,587,null,659,null, 698,null,587,null,523,null,587,null],
+        ],
+        bass: [
+          [147,null,147,null,147,null,147,null, 131,null,131,null,147,null,147,null],
+          [147,175,null,220,null,196,175,null, 131,147,null,175,null,165,147,null],
+        ],
+        counter: { steps:[4,12], freqs:[1047,880], prob:0.5 },
+        chords: [[587,698,880],[523,659,784]],
+      },
+      { // Level 6-9: E minor, urgent, 180 BPM
+        bpm: 180, hatEvery: 1,
+        melodies: [
+          [659,784,659,null,988,784,659,null, 587,null,659,587,null,494,587,null],
+          [988,null,784,988,null,880,784,null, 659,784,null,880,784,null,659,null],
+          [784,659,null,784,659,null,784,null, 880,784,659,null,784,659,null,659],
+        ],
+        bass: [
+          [165,null,165,null,196,null,196,null, 131,null,131,null,165,null,165,null],
+          [165,196,null,247,null,220,196,null, 131,165,null,196,null,175,165,null],
+        ],
+        counter: { steps:[3,7,11,15], freqs:[1319,1047,988,1047], prob:0.4 },
+        chords: [[659,784,988],[523,659,784]],
+      },
+      { // Level 10+: A minor, intense, 200 BPM
+        bpm: 200, hatEvery: 1,
+        melodies: [
+          [880,null,1047,880,null,784,880,null, 659,880,null,784,659,null,587,null],
+          [1047,988,880,784,880,null,659,null, 784,880,784,659,null,587,659,null],
+          [659,784,880,null,1047,null,880,784, 659,null,784,null,880,784,null,659],
+        ],
+        bass: [
+          [110,null,110,null,220,null,220,null, 110,null,110,null,131,null,131,null],
+          [110,131,null,165,null,147,131,null, 110,131,null,165,null,175,131,null],
+        ],
+        counter: { steps:[1,5,9,13], freqs:[1319,1175,1047,1175], prob:0.6 },
+        chords: [[440,523,659],[392,494,659]],
+      },
+    ];
+
+    const getPhase = () => {
+      if (levelVal <= 2) return MUSIC_PHASES[0];
+      if (levelVal <= 5) return MUSIC_PHASES[1];
+      if (levelVal <= 9) return MUSIC_PHASES[2];
+      return MUSIC_PHASES[3];
+    };
+
+    let stepIdx = 0;
+    let globalBar = 0;
+    let currentPhaseIdx = -1;
+    let melodyInterval = null;
+
+    const WIN_MUSIC = {
+      bpm: 188,
+      melodies: [
+        [1047,null,1319,null,1568,null,1319,1047, 1175,null,1047,null,1319,null,1568,null],
+        [1568,1319,1047,null,1319,1568,1047,null, 1319,1047,null,880,1047,1319,null,1568],
+        [1047,1175,1319,null,1568,1319,1175,null, 1047,null,1319,null,1568,null,1047,null],
+      ],
+      bass: [523,null,523,null,659,null,659,null, 523,null,440,null,523,null,659,null],
+      chords: [[523,659,784,1047],[440,523,659,880],[349,440,523,659]],
+      counter: [2093,null,2093,null,1760,null,1760,null, 2093,null,null,null,1568,null,null,null],
+    };
+
+    const scheduleStep = () => {
+      if (winMusicActive) {
+        const stepMs = Math.round(60000 / WIN_MUSIC.bpm / 2);
+        const s = stepIdx % 16;
+        if (soundEnabledRef.current) {
+          const noteDur = stepMs / 1000 * 0.78;
+          const mel = WIN_MUSIC.melodies[Math.floor(globalBar / 2) % 3];
+          if (mel[s]) playBgNote(mel[s], "sine", 0.22, noteDur);
+          if (WIN_MUSIC.counter[s]) playBgNote(WIN_MUSIC.counter[s], "triangle", 0.1, noteDur * 0.55);
+          if (WIN_MUSIC.bass[s]) playBgNote(WIN_MUSIC.bass[s], "square", 0.17, noteDur * 1.1);
+          if (s === 0 || s === 8) playBgKick();
+          if (s === 4 || s === 12) playBgSnare();
+          if (s === 2 || s === 6 || s === 10 || s === 14) playBgSnare();
+          if (s % 2 === 0) playBgHat();
+          if (s === 0 || s === 8) {
+            WIN_MUSIC.chords[s === 0 ? 0 : s === 8 ? 1 : 2].forEach(f => playBgNote(f, "triangle", 0.09, noteDur * 1.5));
+          }
+        }
+        stepIdx++;
+        if (s === 15) globalBar++;
+        melodyInterval = setTimeout(scheduleStep, stepMs);
+        return;
+      }
+
+      const phase = getPhase();
+      const stepMs = Math.round(60000 / phase.bpm / 2);
+      const s = stepIdx % 16;
+      const barInCycle = globalBar % 4;
+
+      // Detect phase change — restart bar/step counters
+      const newPhaseIdx = MUSIC_PHASES.indexOf(phase);
+      if (newPhaseIdx !== currentPhaseIdx) {
+        currentPhaseIdx = newPhaseIdx;
+        stepIdx = 0;
+        globalBar = 0;
+      }
+
+      if (!soundEnabledRef.current) {
+        stepIdx++;
+        if (s === 15) globalBar++;
+        melodyInterval = setTimeout(scheduleStep, stepMs);
+        return;
+      }
+
+      const noteDur = stepMs / 1000 * 0.82;
+      const patIdx = PATTERN_CYCLE[barInCycle];
+      const melody = phase.melodies[patIdx];
+      const bass = phase.bass[(barInCycle === 1 || barInCycle === 3) ? 1 : 0];
+
+      // Main melody (triangle = NES lead)
+      if (melody[s]) playBgNote(melody[s], "triangle", 0.28, noteDur);
+
+      // Counter-melody: a second voice on off-beat steps, adds call-and-response feel
+      if (phase.counter.steps.includes(s) && Math.random() < phase.counter.prob) {
+        const ci = phase.counter.steps.indexOf(s);
+        playBgNote(phase.counter.freqs[ci], "sine", 0.1, noteDur * 0.65);
+      }
+
+      // Bass (square = punchy NES bass)
+      if (bass[s]) playBgNote(bass[s], "square", 0.2, noteDur * 1.15);
+
+      // Drums
+      if (s === 0 || s === 8)  playBgKick();
+      if (s === 4 || s === 12) playBgSnare();
+      // Fill on bar 4: extra snare ghost notes
+      if (barInCycle === 3 && (s === 6 || s === 14)) playBgSnare();
+      if (s % phase.hatEvery === 0) playBgHat();
+
+      // Chord stab on beats 1 & 3
+      if (s === 0 || s === 8) {
+        const chord = phase.chords[s === 0 ? 0 : 1];
+        chord.forEach(f => playBgNote(f, "triangle", 0.07, noteDur * 1.3));
+      }
+
+      stepIdx++;
+      if (s === 15) globalBar++;
+      melodyInterval = setTimeout(scheduleStep, stepMs);
+    };
+
+    scheduleStep();
 
     const getRockInterval = () => {
       if (levelVal <= 1) return 160;
@@ -498,15 +916,7 @@ export default function Game() {
         ctx.beginPath(); ctx.arc(cx + 5, 12, 1, 0, Math.PI * 2); ctx.fill();
 
         ctx.strokeStyle = "#000"; ctx.lineWidth = 1.5;
-        if (!this.onRock && !this.caught) {
-          // screaming open mouth while falling
-          ctx.fillStyle = "#222";
-          ctx.beginPath(); ctx.ellipse(cx, 15, 3.5, 4.5, 0, 0, Math.PI * 2); ctx.fill();
-          ctx.fillStyle = "#ff6060";
-          ctx.beginPath(); ctx.ellipse(cx, 16, 2, 3, 0, 0, Math.PI * 2); ctx.fill();
-        } else {
-          ctx.beginPath(); ctx.arc(cx, 15, 4, 0.2, Math.PI - 0.2); ctx.stroke();
-        }
+        ctx.beginPath(); ctx.arc(cx, 15, 4, 0.2, Math.PI - 0.2); ctx.stroke();
 
         const bodyColor = this.color === "#7CFC00" ? "#6BEB00" : this.color === "#00FF7F" ? "#00EE6F" : this.color === "#32CD32" ? "#2BBD2B" : this.color === "#FFD700" ? "#E5C100" : this.color === "#FF69B4" ? "#CC3377" : "#9CEE2E";
         ctx.fillStyle = bodyColor;
@@ -594,6 +1004,40 @@ export default function Game() {
         ctx.fillStyle = this.color;
         ctx.fillRect(this.x, this.y, this.size, this.size);
         ctx.globalAlpha = 1;
+      }
+    }
+
+    class FireworkParticle {
+      constructor(x, y, color, vx, vy, twinkle) {
+        this.x = x; this.y = y;
+        this.color = color;
+        this.vx = vx; this.vy = vy;
+        this.life = 60 + Math.random() * 55;
+        this.maxLife = this.life;
+        this.size = 1.8 + Math.random() * 3.5;
+        this.gravity = 0.055 + Math.random() * 0.035;
+        this.drag = 0.965;
+        this.twinkle = twinkle;
+      }
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += this.gravity;
+        this.vx *= this.drag;
+        this.vy *= this.drag;
+        this.life--;
+      }
+      draw() {
+        const a = Math.pow(this.life / this.maxLife, 1.4);
+        ctx.globalAlpha = a;
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 7;
+        ctx.fillStyle = (this.twinkle && Math.floor(this.life * 0.5) % 3 === 0) ? "#FFFFFF" : this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
       }
     }
 
@@ -771,10 +1215,17 @@ export default function Game() {
         this.y = 85 + Math.random() * 80;
         this.speed = 1.3 + Math.random() * 0.8;
         this.beamPulse = 0; this.lightPhase = 0;
+        this.hp = 15; this.maxHp = 15;
+        this.hitFlash = 0;
       }
       update() {
         this.x += this.fromLeft ? this.speed : -this.speed;
         this.beamPulse += 0.08; this.lightPhase += 0.15;
+        if (this.hitFlash > 0) this.hitFlash--;
+      }
+      checkBulletHit(b) {
+        return b.x < this.x + this.w && b.x + b.width > this.x &&
+               b.y < this.y + this.h && b.y + b.height > this.y;
       }
       draw() {
         const cx = this.x + this.w / 2;
@@ -796,8 +1247,13 @@ export default function Game() {
         ctx.closePath(); ctx.fill();
         // Body
         const bodyGrad = ctx.createLinearGradient(0, -this.h / 4, 0, this.h / 4);
-        bodyGrad.addColorStop(0, "#AAEEFF");
-        bodyGrad.addColorStop(1, "#4499CC");
+        if (this.hitFlash > 0) {
+          bodyGrad.addColorStop(0, "#FFFFFF");
+          bodyGrad.addColorStop(1, "#FF6666");
+        } else {
+          bodyGrad.addColorStop(0, "#AAEEFF");
+          bodyGrad.addColorStop(1, "#4499CC");
+        }
         ctx.fillStyle = bodyGrad;
         ctx.beginPath(); ctx.ellipse(0, 4, this.w / 2, this.h / 3, 0, 0, Math.PI * 2); ctx.fill();
         // Dome
@@ -817,6 +1273,26 @@ export default function Game() {
           }
         }
         ctx.shadowBlur = 0;
+        // HP bar (shows once damaged)
+        if (this.hp < this.maxHp) {
+          const barW = this.w * 0.8;
+          const barH = 5;
+          const barX = -barW / 2;
+          const barY = -this.h / 2 - 12;
+          ctx.fillStyle = "rgba(0,0,0,0.5)";
+          ctx.fillRect(barX, barY, barW, barH);
+          const hpRatio = this.hp / this.maxHp;
+          const hpColor = hpRatio > 0.5 ? "#44FF88" : hpRatio > 0.25 ? "#FFCC00" : "#FF4444";
+          ctx.fillStyle = hpColor;
+          ctx.fillRect(barX, barY, barW * hpRatio, barH);
+          ctx.strokeStyle = "rgba(255,255,255,0.4)";
+          ctx.lineWidth = 1;
+          ctx.strokeRect(barX, barY, barW, barH);
+          ctx.font = "bold 9px Arial";
+          ctx.textAlign = "center";
+          ctx.fillStyle = "#fff";
+          ctx.fillText(`${this.hp}/15`, 0, barY - 2);
+        }
         ctx.restore();
       }
       isOffScreen() { return this.fromLeft ? this.x > canvas.width + this.w : this.x + this.w < 0; }
@@ -893,6 +1369,391 @@ export default function Game() {
       }
       isDoneBeingCaught() { return this.caught && this.catchScale >= 2; }
       isOffScreen() { return this.fromLeft ? this.x > canvas.width + 60 : this.x + this.width < -60; }
+    }
+
+    class GravityWell {
+      constructor() {
+        this.radius = 230;
+        this.strength = 0.7;
+        this.x = 90 + Math.random() * (canvas.width - 180);
+        this.y = 80 + Math.random() * (canvas.height - 260);
+        this.vx = (Math.random() - 0.5) * 0.5;
+        this.vy = (Math.random() - 0.5) * 0.25 + 0.15;
+        this.life = 300;
+        this.maxLife = 300;
+        this.angle = 0;
+      }
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.life--;
+        this.angle += 0.025;
+        if (this.x < 60 || this.x > canvas.width - 60) this.vx *= -1;
+        if (this.y < 60 || this.y > canvas.height - 100) this.vy *= -1;
+      }
+      applyTo(cx, cy) {
+        const dx = this.x - cx;
+        const dy = this.y - cy;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < this.radius && dist > 1) {
+          const pull = this.strength * (this.radius / Math.max(dist, 40));
+          return { ax: (dx / dist) * pull, ay: (dy / dist) * pull };
+        }
+        return { ax: 0, ay: 0 };
+      }
+      isDone() { return this.life <= 0; }
+      draw() {
+        const fadeIn  = Math.min(1, (this.maxLife - this.life) / 40);
+        const fadeOut = Math.min(1, this.life / 40);
+        const alpha   = Math.min(fadeIn, fadeOut);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+
+        // Gravitational lensing aura
+        const aura = ctx.createRadialGradient(this.x, this.y, 16, this.x, this.y, this.radius);
+        aura.addColorStop(0,   "rgba(90,0,160,0.55)");
+        aura.addColorStop(0.4, "rgba(50,0,100,0.25)");
+        aura.addColorStop(1,   "rgba(0,0,0,0)");
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = aura;
+        ctx.fill();
+
+        // Rotating accretion disk rings
+        const diskColors = ["rgba(220,100,255,0.75)", "rgba(160,60,230,0.55)", "rgba(100,30,180,0.4)"];
+        const diskRadii  = [38, 26, 17];
+        for (let i = 0; i < 3; i++) {
+          ctx.save();
+          ctx.translate(this.x, this.y);
+          ctx.rotate(this.angle + i * (Math.PI * 2 / 3));
+          ctx.scale(1, 0.32);
+          ctx.beginPath();
+          ctx.arc(0, 0, diskRadii[i], 0, Math.PI * 2);
+          ctx.strokeStyle = diskColors[i];
+          ctx.lineWidth = 3 - i * 0.6;
+          ctx.shadowColor = "#BB44FF";
+          ctx.shadowBlur = 14;
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Event horizon — black core with glow
+        const core = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, 20);
+        core.addColorStop(0,   "rgba(0,0,0,1)");
+        core.addColorStop(0.7, "rgba(8,0,18,0.98)");
+        core.addColorStop(1,   "rgba(50,0,90,0.5)");
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 20, 0, Math.PI * 2);
+        ctx.fillStyle = core;
+        ctx.shadowColor = "#CC44FF";
+        ctx.shadowBlur = 22;
+        ctx.fill();
+        ctx.strokeStyle = "rgba(210,110,255,0.9)";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Countdown arc (last 2 seconds, turns orange → red)
+        const lifeRatio = this.life / this.maxLife;
+        if (lifeRatio < 0.4) {
+          const r = Math.floor((1 - lifeRatio / 0.4) * 255);
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, 24, -Math.PI / 2, -Math.PI / 2 + lifeRatio / 0.4 * Math.PI * 2);
+          ctx.strokeStyle = `rgba(${r},${255 - r},0,0.85)`;
+          ctx.lineWidth = 2.5;
+          ctx.shadowBlur = 0;
+          ctx.stroke();
+        }
+
+        ctx.restore();
+      }
+    }
+
+    class LastEgg {
+      constructor() {
+        this.width = 76; this.height = 104;
+        this.x = canvas.width / 2 - this.width / 2 + (Math.random() - 0.5) * 80;
+        this.y = -this.height;
+        this.vy = 0.42;
+        this.wobble = 0;
+        this.glowPhase = 0;
+        this.arrowBounce = 0;
+        this.sparkles = Array.from({ length: 8 }, (_, i) => ({
+          angle: (i / 8) * Math.PI * 2, dist: 70 + Math.random() * 20, phase: Math.random() * Math.PI * 2
+        }));
+        this.caught = false;
+        this.catchScale = 1;
+        this.cracked = false;
+        this.crackedFrames = 0;
+        this.crackedRotation = 0;
+        this.crackedAlpha = 1;
+      }
+      update() {
+        if (this.cracked) {
+          this.crackedFrames++;
+          this.vy += 0.12;
+          this.y += this.vy;
+          this.crackedRotation += 0.07;
+          this.crackedAlpha = Math.max(0, 1 - this.crackedFrames / 55);
+          this.glowPhase += 0.05;
+          return;
+        }
+        if (this.caught) { this.catchScale = Math.min(3, this.catchScale + 0.07); return; }
+        this.y += this.vy;
+        this.wobble += 0.025;
+        this.x += Math.sin(this.wobble) * 0.55;
+        this.glowPhase += 0.05;
+        this.arrowBounce += 0.12;
+      }
+      draw() {
+        if (this.cracked) {
+          const cx = this.x + this.width / 2;
+          const cy = this.y + this.height / 2 + 4;
+          ctx.save();
+          ctx.globalAlpha = this.crackedAlpha;
+          ctx.translate(cx, cy);
+          ctx.rotate(this.crackedRotation);
+          ctx.translate(-cx, -cy);
+
+          // Red danger glow
+          ctx.shadowColor = "#FF2200";
+          ctx.shadowBlur = 32 + Math.sin(this.glowPhase * 3) * 12;
+
+          // Cracked egg body — dark orange-red tint
+          const eggGrad = ctx.createRadialGradient(cx - 14, cy - 20, 6, cx, cy, this.height / 2);
+          eggGrad.addColorStop(0, "#FFE082");
+          eggGrad.addColorStop(0.35, "#FF8800");
+          eggGrad.addColorStop(0.7, "#CC2200");
+          eggGrad.addColorStop(1, "#660000");
+          ctx.beginPath();
+          ctx.ellipse(cx, cy, this.width / 2, this.height / 2, 0, 0, Math.PI * 2);
+          ctx.fillStyle = eggGrad;
+          ctx.fill();
+
+          // Heavy crack lines
+          ctx.shadowBlur = 0;
+          ctx.strokeStyle = "#1a0000";
+          ctx.lineWidth = 2.5;
+          ctx.beginPath(); ctx.moveTo(cx - 4, cy - 30); ctx.lineTo(cx + 10, cy - 8); ctx.lineTo(cx - 8, cy + 10); ctx.lineTo(cx + 4, cy + 30); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(cx + 18, cy - 18); ctx.lineTo(cx + 4, cy + 2); ctx.lineTo(cx + 20, cy + 22); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(cx - 22, cy - 10); ctx.lineTo(cx - 6, cy + 6); ctx.lineTo(cx - 18, cy + 26); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(cx - 10, cy - 28); ctx.lineTo(cx + 2, cy - 12); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(cx + 8, cy + 10); ctx.lineTo(cx - 4, cy + 28); ctx.stroke();
+
+          // Red flash overlay
+          const flashA = 0.25 + 0.2 * Math.sin(this.glowPhase * 6);
+          ctx.beginPath();
+          ctx.ellipse(cx, cy, this.width / 2, this.height / 2, 0, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255,0,0,${flashA})`;
+          ctx.fill();
+
+          ctx.restore();
+          return;
+        }
+
+        const cx = this.x + this.width / 2;
+        const cy = this.y + this.height / 2 + 4;
+        const glow = 0.5 + 0.5 * Math.sin(this.glowPhase);
+        const progress = Math.max(0, Math.min(1, this.y / (canvas.height - 120)));
+        const alpha = this.caught ? Math.max(0, 1 - (this.catchScale - 1) / 2) : 1;
+        ctx.save();
+        if (this.caught) {
+          ctx.translate(cx, cy);
+          ctx.scale(this.catchScale, this.catchScale);
+          ctx.translate(-cx, -cy);
+          ctx.globalAlpha = alpha;
+        }
+
+        // Wide outer halo — very visible
+        const haloR = 110 + glow * 24;
+        const halo = ctx.createRadialGradient(cx, cy, 8, cx, cy, haloR);
+        halo.addColorStop(0,   `rgba(255,240,60,${0.45 + glow * 0.25})`);
+        halo.addColorStop(0.4, `rgba(80,255,160,${0.22 + glow * 0.14})`);
+        halo.addColorStop(0.75,`rgba(255,180,0,${0.08 + glow * 0.06})`);
+        halo.addColorStop(1,   "rgba(0,0,0,0)");
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, haloR, haloR, 0, 0, Math.PI * 2);
+        ctx.fillStyle = halo;
+        ctx.fill();
+
+        // Orbiting sparkles
+        this.sparkles.forEach(sp => {
+          const a = sp.angle + this.glowPhase * 0.6;
+          const sx = cx + Math.cos(a) * sp.dist;
+          const sy = cy + Math.sin(a) * sp.dist * 0.5;
+          const sb = 0.5 + 0.5 * Math.sin(this.glowPhase * 2 + sp.phase);
+          ctx.save();
+          ctx.globalAlpha = alpha * (0.5 + 0.5 * sb);
+          ctx.shadowColor = "#FFD700";
+          ctx.shadowBlur = 8;
+          ctx.fillStyle = sb > 0.5 ? "#FFFDE7" : "#FFD700";
+          ctx.beginPath();
+          ctx.arc(sx, sy, 3 + sb * 2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+
+        // Egg body
+        const eggGrad = ctx.createRadialGradient(cx - 14, cy - 20, 6, cx, cy, this.height / 2);
+        eggGrad.addColorStop(0,    "#FFFDE7");
+        eggGrad.addColorStop(0.3,  "#FFE082");
+        eggGrad.addColorStop(0.68, "#F9A825");
+        eggGrad.addColorStop(1,    "#E65100");
+        ctx.shadowColor = `rgba(255,210,60,${0.7 + glow * 0.3})`;
+        ctx.shadowBlur = 38 + glow * 22;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, this.width / 2, this.height / 2, 0, 0, Math.PI * 2);
+        ctx.fillStyle = eggGrad;
+        ctx.fill();
+
+        // Cracks — grow in as egg descends
+        if (progress > 0.25) {
+          const ca = Math.min(0.9, (progress - 0.25) / 0.45);
+          ctx.globalAlpha = alpha * ca;
+          ctx.strokeStyle = "#7B3F00";
+          ctx.lineWidth = 2;
+          ctx.shadowBlur = 0;
+          ctx.beginPath(); ctx.moveTo(cx - 6, cy - 20); ctx.lineTo(cx + 6, cy - 2); ctx.lineTo(cx - 4, cy + 18); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(cx + 14, cy - 8); ctx.lineTo(cx + 8, cy + 14); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(cx - 16, cy + 4); ctx.lineTo(cx - 8, cy + 20); ctx.stroke();
+          ctx.globalAlpha = alpha;
+        }
+
+        // Specular highlights
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "rgba(255,255,255,0.65)";
+        ctx.beginPath();
+        ctx.ellipse(cx - 18, cy - 22, 13, 19, -0.45, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "rgba(255,255,255,0.25)";
+        ctx.beginPath();
+        ctx.ellipse(cx + 12, cy - 8, 6, 9, 0.3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Inner glow pulse
+        const inner = ctx.createRadialGradient(cx, cy, 0, cx, cy, 32);
+        inner.addColorStop(0, `rgba(255,255,200,${0.35 + glow * 0.3})`);
+        inner.addColorStop(1, "rgba(255,190,40,0)");
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, 32, 40, 0, 0, Math.PI * 2);
+        ctx.fillStyle = inner;
+        ctx.fill();
+
+        // "CATCH IT!" label above egg — big, pulsing, urgent
+        if (!this.caught) {
+          const labelY = this.y - 18;
+          const pulse = 0.75 + 0.25 * Math.sin(this.glowPhase * 2);
+          ctx.save();
+          ctx.globalAlpha = alpha * pulse;
+          ctx.shadowColor = "#FFD700";
+          ctx.shadowBlur = 18;
+          ctx.font = "bold 16px Arial";
+          ctx.textAlign = "center";
+          ctx.fillStyle = "#FFF176";
+          ctx.fillText("⬇ CATCH IT! ⬇", cx, labelY);
+          ctx.restore();
+
+          // Bouncing arrow
+          const arrowY = this.y - 50 + Math.sin(this.arrowBounce) * 8;
+          ctx.save();
+          ctx.globalAlpha = alpha * (0.6 + 0.4 * Math.sin(this.arrowBounce));
+          ctx.shadowColor = "#FF4444";
+          ctx.shadowBlur = 14;
+          ctx.font = "bold 22px Arial";
+          ctx.textAlign = "center";
+          ctx.fillStyle = "#FF6666";
+          ctx.fillText("▼", cx, arrowY);
+          ctx.restore();
+        }
+
+        ctx.restore();
+      }
+      checkCatch() {
+        if (this.caught) return false;
+        const shipCx = ship.x + ship.width / 2;
+        const eggCx  = this.x + this.width / 2;
+        const eggBottom = this.y + this.height;
+        return Math.abs(shipCx - eggCx) < 44 &&
+               eggBottom > ship.y && this.y < ship.y + ship.height;
+      }
+      isDoneBeingCaught() { return this.caught && this.catchScale >= 3; }
+      isOffScreen() { return this.y > canvas.height + 10; }
+    }
+
+    // ---- FIREWORK HELPERS ----
+
+    const FW_PALETTES = [
+      ["#FFD700","#FFF9A0"], ["#FF4466","#FF99BB"], ["#44AAFF","#AADDFF"],
+      ["#44FF88","#AAFFCC"], ["#CC44FF","#DDAAFF"], ["#FF8800","#FFCCAA"], ["#FFFFFF","#CCE8FF"],
+    ];
+    const FW_TYPES = ["ring","chrysanthemum","star","willow","glitter"];
+
+    function spawnFireworkShell() {
+      const [c1, c2] = FW_PALETTES[Math.floor(Math.random() * FW_PALETTES.length)];
+      return {
+        x: 70 + Math.random() * (canvas.width - 140),
+        y: canvas.height - 10,
+        vy: -(12 + Math.random() * 6),
+        vx: (Math.random() - 0.5) * 1.8,
+        targetY: 50 + Math.random() * (canvas.height * 0.48),
+        color: c1, color2: c2,
+        trail: [],
+        type: FW_TYPES[Math.floor(Math.random() * FW_TYPES.length)],
+        exploded: false,
+      };
+    }
+
+    function explodeShell(shell) {
+      const count = { willow: 90, glitter: 100, ring: 72, star: 72, chrysanthemum: 80 }[shell.type] || 72;
+      for (let k = 0; k < count; k++) {
+        const angle = (k / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.25;
+        let spd, vx, vy;
+        if (shell.type === "ring") {
+          spd = 4.8 + (Math.random() - 0.5) * 0.7;
+          vx = Math.cos(angle) * spd; vy = Math.sin(angle) * spd;
+        } else if (shell.type === "star") {
+          const pt = Math.floor(k / (count / 6)) % 2 === 0;
+          spd = pt ? 5.5 + Math.random() * 2 : 2 + Math.random() * 1.5;
+          vx = Math.cos(angle) * spd; vy = Math.sin(angle) * spd;
+        } else if (shell.type === "willow") {
+          spd = 2 + Math.random() * 5.5;
+          vx = Math.cos(angle) * spd * 0.7; vy = Math.sin(angle) * spd - 2.5;
+        } else if (shell.type === "glitter") {
+          spd = Math.random() * 7;
+          vx = Math.cos(Math.random() * Math.PI * 2) * spd; vy = -Math.random() * 5;
+        } else { // chrysanthemum
+          spd = 1.5 + Math.random() * 5.5;
+          vx = Math.cos(angle) * spd; vy = Math.sin(angle) * spd;
+        }
+        const c = Math.random() > 0.35 ? shell.color : shell.color2;
+        fireworkParticles.push(new FireworkParticle(shell.x, shell.y, c, vx, vy, Math.random() > 0.55));
+      }
+    }
+
+    function drawFireworks() {
+      // Rising shells + trails
+      fireworkShells.forEach(shell => {
+        shell.trail.forEach((t, i) => {
+          ctx.globalAlpha = (i / shell.trail.length) * 0.55;
+          ctx.shadowColor = shell.color;
+          ctx.shadowBlur = 10;
+          ctx.fillStyle = shell.color;
+          ctx.beginPath();
+          ctx.arc(t.x, t.y, 1.8, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.globalAlpha = 1;
+        ctx.shadowColor = shell.color;
+        ctx.shadowBlur = 18;
+        ctx.fillStyle = "#FFFFFF";
+        ctx.beginPath();
+        ctx.arc(shell.x, shell.y, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      });
+      // Burst particles
+      fireworkParticles.forEach(p => p.draw());
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
     }
 
     // ---- DRAW ----
@@ -1156,6 +2017,8 @@ export default function Game() {
       if (invulnerable) return;
       livesVal--;
       invulnerable = true;
+      damagedFrames = 270;
+      playHit();
       setLives(livesVal);
       setHalfDamage(false);
 
@@ -1182,6 +2045,7 @@ export default function Game() {
       gameRunning = false;
       if (flashIntervalId) { clearInterval(flashIntervalId); flashIntervalId = null; }
       ship.flash = false;
+      playGameOver();
       setIsGameOver(true);
     }
 
@@ -1204,8 +2068,8 @@ export default function Game() {
 
       if (buyLivesRef.current) {
         buyLivesRef.current = false;
-        if (coinsVal >= 70) {
-          coinsVal -= 70;
+        if (coinsVal >= 120) {
+          coinsVal -= 120;
           livesVal += 1;
           setCoins(coinsVal);
           setLives(livesVal);
@@ -1217,13 +2081,29 @@ export default function Game() {
 
       if (pauseFrames > 0) { pauseFrames--; return; }
 
-      const movingLeft = keys["ArrowLeft"] || keys["a"];
-      const movingRight = keys["ArrowRight"] || keys["d"];
+      if (gravityWell) {
+        const { ax } = gravityWell.applyTo(ship.x + ship.width / 2, ship.y + ship.height / 2);
+        ship.x = Math.max(0, Math.min(canvas.width - ship.width, ship.x + ax * 0.018));
+      }
+
+      const scrambled = scrambleFrames > 0;
+      const damaged = damagedFrames > 0;
+      if (damaged) {
+        damagedFrames--;
+        // Random drift and speed penalty
+        const drift = (Math.random() - 0.5) * 1.4;
+        ship.x = Math.max(0, Math.min(canvas.width - ship.width, ship.x + drift));
+      }
+      // 30% chance input is swallowed while damaged (stutter)
+      const inputBlocked = damaged && Math.random() < 0.3;
+      const movingLeft  = !inputBlocked && (scrambled ? (keys["ArrowRight"] || keys["d"]) : (keys["ArrowLeft"]  || keys["a"]));
+      const movingRight = !inputBlocked && (scrambled ? (keys["ArrowLeft"]  || keys["a"]) : (keys["ArrowRight"] || keys["d"]));
+      const speedMult = damaged ? 0.45 : 1;
       if (movingLeft) {
-        ship.x = Math.max(0, ship.x - ship.speed);
+        ship.x = Math.max(0, ship.x - ship.speed * speedMult);
         ship.tilt = Math.max(-0.2, ship.tilt - 0.03);
       } else if (movingRight) {
-        ship.x = Math.min(canvas.width - ship.width, ship.x + ship.speed);
+        ship.x = Math.min(canvas.width - ship.width, ship.x + ship.speed * speedMult);
         ship.tilt = Math.min(0.2, ship.tilt + 0.03);
       } else {
         ship.tilt *= 0.85;
@@ -1266,6 +2146,7 @@ export default function Game() {
               screenShakeMag = rock.hp > 0 ? 5 : 10;
             }
             if (rock.hp <= 0) {
+              playExplosion();
               // Explode rock
               const pCount = rock.isBoss ? 55 : 22;
               for (let k = 0; k < pCount; k++) {
@@ -1285,6 +2166,8 @@ export default function Game() {
                 }
               });
               rocks.splice(j, 1);
+            } else {
+              playRockHit();
             }
             hit = true;
             break;
@@ -1317,10 +2200,58 @@ export default function Game() {
               coinsVal += 5;
               setCoins(coinsVal);
               floatingTexts.push({ x: mr.x, y: mr.y, text: "+5", alpha: 1, vy: 1.2, color: "#ffcc00" });
+              playMeteorExplosion();
               meteorRocks.splice(mi, 1);
               hit = true;
               break;
             }
+          }
+        }
+        if (!hit && ufo) {
+          if (ufo.checkBulletHit(b)) {
+            ufo.hp--;
+            ufo.hitFlash = 10;
+            playRockHit();
+            hit = true;
+            if (ufo.hp <= 0) {
+              playExplosion();
+              screenShakeFrames = 25; screenShakeMag = 12;
+              const ufoCx = ufo.x + ufo.w / 2;
+              const ufoCy = ufo.y + ufo.h / 2;
+              const expColors = ["#FF4400", "#FF8800", "#FFCC00", "#FF2200", "#FFFFFF", "#44CCFF", "#FF44FF"];
+              for (let k = 0; k < 80; k++) {
+                const p = new Particle(ufoCx, ufoCy, expColors[Math.floor(Math.random() * expColors.length)]);
+                p.vx = (Math.random() - 0.5) * 14;
+                p.vy = (Math.random() - 0.5) * 14;
+                p.life = 45 + Math.floor(Math.random() * 35);
+                p.size = 3 + Math.random() * 5;
+                particles.push(p);
+              }
+              coinsVal += 300;
+              setCoins(coinsVal);
+              floatingTexts.push({ x: ufoCx, y: ufoCy - 20, text: "🛸 UFO DOWN! +300", alpha: 1, vy: 1.8, color: "#44CCFF" });
+              ufo = null;
+            }
+          }
+        }
+        if (!hit && lastEgg && !lastEgg.caught && !lastEgg.cracked) {
+          const ex = lastEgg.x, ey = lastEgg.y, ew = lastEgg.width, eh = lastEgg.height;
+          if (b.x < ex + ew && b.x + b.width > ex && b.y < ey + eh && b.y + b.height > ey) {
+            lastEgg.cracked = true;
+            playExplosion();
+            screenShakeFrames = 20; screenShakeMag = 9;
+            for (let k = 0; k < 40; k++) {
+              const p = new Particle(ex + ew / 2, ey + eh / 2,
+                ["#F9A825","#FFE082","#E65100","#FFFDE7","#FF4400","#fff"][Math.floor(Math.random() * 6)]);
+              p.vx = (Math.random() - 0.5) * 11;
+              p.vy = (Math.random() - 0.5) * 11;
+              p.life = 40 + Math.floor(Math.random() * 30);
+              p.size = 2 + Math.random() * 4;
+              particles.push(p);
+            }
+            floatingTexts.push({ x: ex + ew / 2, y: ey - 10, text: "💥 YOU SHOT THE EGG!", alpha: 1, vy: 1.1, color: "#FF4444", fontSize: 18 });
+            setTimeout(() => { if (gameRunning) { endGame(); setEggWasShot(true); } }, 1500);
+            hit = true;
           }
         }
         if (hit) bulletsList.splice(i, 1);
@@ -1331,6 +2262,7 @@ export default function Game() {
       if (newLevel !== levelVal) {
         levelVal = newLevel;
         setLevel(levelVal);
+        playLevelUp();
         setLevelUpBanner(levelVal);
         if (levelUpTimerId) clearTimeout(levelUpTimerId);
         levelUpTimerId = setTimeout(() => setLevelUpBanner(null), 1800);
@@ -1346,6 +2278,7 @@ export default function Game() {
             meteorStormFrames = 600;
             screenShakeFrames = 30;
             screenShakeMag = 8;
+            playMeteorStormWarning();
           }
         }
       }
@@ -1382,6 +2315,11 @@ export default function Game() {
       }
 
       rocks = rocks.filter((rock) => {
+        if (gravityWell) {
+          const { ax, ay } = gravityWell.applyTo(rock.x + rock.width / 2, rock.y + rock.height / 2);
+          rock.x += ax * 0.06;
+          rock.y += ay * 0.06;
+        }
         rock.update();
         if (!invulnerable && rock.checkCollision(ship)) loseLife();
         return !rock.isOffScreen();
@@ -1393,10 +2331,12 @@ export default function Game() {
           if (meteorHalfDamage) {
             meteorHalfDamage = false;
             setHalfDamage(false);
+            playMeteorImpact();
             loseLife();
           } else {
             meteorHalfDamage = true;
             setHalfDamage(true);
+            playMeteorImpact();
             invulnerable = true;
             floatingTexts.push({ x: ship.x + ship.width / 2, y: ship.y - 10, text: "½ hit!", alpha: 1, vy: 1.2, color: "#ff8800" });
             setTimeout(() => { invulnerable = false; }, 800);
@@ -1413,6 +2353,7 @@ export default function Game() {
 
         if (!alien.caught && !alien.onRock && alien.checkCatch()) {
           alien.caught = true;
+          playCatch(alien.isGolden, alien.isQueen);
           if (spotlightAlien === alien) spotlightAlien = null;
           scoreVal += 1;
           comboVal++;
@@ -1507,18 +2448,101 @@ export default function Game() {
         if (sosAlien.isDoneBeingCaught() || sosAlien.isOffScreen()) sosAlien = null;
       }
 
+      // Gravity well (level 35+)
+      gravityWellTimer++;
+      if (levelVal >= 35 && !gravityWell && gravityWellTimer >= 900) {
+        gravityWellTimer = 0;
+        gravityWell = new GravityWell();
+        floatingTexts.push({ x: canvas.width / 2, y: canvas.height / 2 - 40, text: "⚫ GRAVITY WELL!", alpha: 1, vy: 1.2, color: "#CC44FF" });
+      }
+      if (gravityWell) {
+        gravityWell.update();
+        if (gravityWell.isDone()) gravityWell = null;
+      }
+
+      // Scrambled controls (level 37+)
+      if (levelVal >= 37 && scrambleFrames <= 0 && scrambleWarnFrames <= 0) {
+        scrambleTimer++;
+        if (scrambleTimer >= 1200) {
+          scrambleTimer = 0;
+          scrambleWarnFrames = 180; // 3s warning
+        }
+      }
+      if (scrambleWarnFrames > 0) {
+        scrambleWarnFrames--;
+        if (scrambleWarnFrames === 0) scrambleFrames = 300; // 5s active
+      }
+      if (scrambleFrames > 0) scrambleFrames--;
+
+      // Last Egg — mission complete (level 50+)
+      if (levelVal >= 50 && !lastEgg && !lastEggSpawned) {
+        lastEggSpawned = true;
+        lastEgg = new LastEgg();
+        floatingTexts.push({ x: canvas.width / 2, y: canvas.height / 2 - 80, text: "🥚 THE LAST EGG!", alpha: 1, vy: 0.9, color: "#FFD700", fontSize: 28 });
+        floatingTexts.push({ x: canvas.width / 2, y: canvas.height / 2 - 40, text: "CATCH IT TO COMPLETE THE MISSION!", alpha: 1, vy: 0.9, color: "#FFF176", fontSize: 16 });
+      }
+      if (lastEgg) {
+        lastEgg.update();
+        if (lastEgg.checkCatch()) {
+          lastEgg.caught = true;
+          const ecx = lastEgg.x + lastEgg.width / 2;
+          const ecy = lastEgg.y + lastEgg.height / 2;
+          playExplosion();
+          playWin();
+          winMusicActive = true;
+          fireworksFrames = 108;
+          screenShakeFrames = 30; screenShakeMag = 14;
+          // Burst at catch point
+          const expColors = ["#FFD700","#FFF9A0","#FF8C00","#FFFFFF","#90EE90","#00FF88","#AAFFCC"];
+          for (let k = 0; k < 90; k++) {
+            const angle = (k / 90) * Math.PI * 2;
+            const spd = 3 + Math.random() * 9;
+            fireworkParticles.push(new FireworkParticle(ecx, ecy, expColors[Math.floor(Math.random() * expColors.length)], Math.cos(angle) * spd, Math.sin(angle) * spd, true));
+          }
+          // Launch 3 shells immediately
+          for (let i = 0; i < 3; i++) fireworkShells.push(spawnFireworkShell());
+          coinsVal += 500;
+          setCoins(coinsVal);
+          setTimeout(() => { gameRunning = false; setIsMissionComplete(true); }, 1800);
+        }
+        if (lastEgg.isDoneBeingCaught()) lastEgg = null;
+        if (lastEgg && lastEgg.isOffScreen()) { lastEgg = null; lastEggSpawned = false; }
+      }
+
+      // Fireworks (after catching last egg)
+      if (fireworksFrames > 0) {
+        fireworksFrames--;
+        if (fireworksFrames % 16 === 0) fireworkShells.push(spawnFireworkShell());
+      }
+      // Update shells
+      fireworkShells = fireworkShells.filter(s => !s.exploded);
+      fireworkShells.forEach(shell => {
+        shell.trail.push({ x: shell.x, y: shell.y });
+        if (shell.trail.length > 12) shell.trail.shift();
+        shell.x += shell.vx;
+        shell.y += shell.vy;
+        shell.vy += 0.22;
+        if (shell.y <= shell.targetY || shell.vy >= -0.5) {
+          explodeShell(shell);
+          shell.exploded = true;
+        }
+      });
+      // Update firework burst particles
+      fireworkParticles = fireworkParticles.filter(p => p.life > 0);
+      fireworkParticles.forEach(p => p.update());
+
       // Coin rain (after catching queen)
       if (coinRainFrames > 0) {
         coinRainFrames--;
         coinRainSpawnTimer++;
         if (coinRainSpawnTimer >= 5) {
           coinRainSpawnTimer = 0;
-          coinParticles.push({ x: Math.random() * canvas.width, y: -8, vx: (Math.random() - 0.5) * 2, vy: 1.5 + Math.random() * 2.5, alpha: 1, size: 5 + Math.random() * 4 });
+          coinParticles.push({ x: Math.random() * canvas.width, y: -8, vx: (Math.random() - 0.5) * 2.5, vy: 1.5 + Math.random() * 2.5, alpha: 1, size: 8 + Math.random() * 6, spin: Math.random() * Math.PI * 2, spinSpeed: 0.06 + Math.random() * 0.09 });
         }
         coinRainCoinsTimer++;
         if (coinRainCoinsTimer >= 8) { coinRainCoinsTimer = 0; coinsVal++; setCoins(coinsVal); }
       }
-      coinParticles = coinParticles.filter((c) => { c.x += c.vx; c.y += c.vy; c.alpha -= 0.007; return c.alpha > 0 && c.y < canvas.height + 10; });
+      coinParticles = coinParticles.filter((c) => { c.x += c.vx; c.y += c.vy; c.alpha -= 0.007; c.spin += c.spinSpeed; return c.alpha > 0 && c.y < canvas.height + 10; });
     }
 
     function drawBullets() {
@@ -1556,10 +2580,10 @@ export default function Game() {
       floatingTexts.forEach((ft) => {
         ctx.save();
         ctx.globalAlpha = ft.alpha;
-        ctx.font = "bold 15px Arial";
+        ctx.font = `bold ${ft.fontSize || 15}px Arial`;
         ctx.textAlign = "center";
         ctx.shadowColor = ft.color;
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = ft.fontSize ? 18 : 10;
         ctx.fillStyle = ft.color;
         ctx.fillText(ft.text, ft.x, ft.y);
         ctx.restore();
@@ -1606,6 +2630,71 @@ export default function Game() {
       ctx.restore();
     }
 
+    function drawScrambleBanner() {
+      if (scrambleWarnFrames <= 0 && scrambleFrames <= 0) return;
+      ctx.save();
+      ctx.textAlign = "center";
+      if (scrambleWarnFrames > 0) {
+        const blink = Math.floor(Date.now() / 200) % 2 === 0;
+        ctx.globalAlpha = blink ? 1 : 0.35;
+        ctx.font = "bold 24px Arial";
+        ctx.shadowColor = "#FF2222";
+        ctx.shadowBlur = 28;
+        ctx.fillStyle = "#FF4444";
+        ctx.fillText("⚡ CONTROLS JAMMED!", canvas.width / 2, 52);
+        ctx.font = "13px Arial";
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = "#ffaaaa";
+        const secs = Math.ceil(scrambleWarnFrames / 60);
+        ctx.fillText(`Activating in ${secs}s — brace yourself!`, canvas.width / 2, 72);
+      } else {
+        const pulse = 0.65 + 0.35 * Math.sin(Date.now() * 0.018);
+        ctx.globalAlpha = pulse;
+        ctx.font = "bold 24px Arial";
+        ctx.shadowColor = "#FFAA00";
+        ctx.shadowBlur = 28;
+        ctx.fillStyle = "#FFD700";
+        ctx.fillText("⚡ CONTROLS JAMMED!", canvas.width / 2, 52);
+        ctx.font = "13px Arial";
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = "#ffe8a0";
+        const secs = Math.ceil(scrambleFrames / 60);
+        ctx.fillText(`${secs}s — left is right, right is left!`, canvas.width / 2, 72);
+      }
+      ctx.restore();
+    }
+
+    function drawDamagedBanner() {
+      if (damagedFrames <= 0) return;
+      const secs = Math.ceil(damagedFrames / 60);
+      const blink = Math.floor(Date.now() / 150) % 2 === 0;
+      // Screen-edge static overlay
+      ctx.save();
+      ctx.globalAlpha = 0.07 + 0.05 * Math.sin(Date.now() * 0.04);
+      for (let i = 0; i < 40; i++) {
+        const sx = Math.random() * canvas.width;
+        const sy = Math.random() * canvas.height;
+        const sw = 2 + Math.random() * 80;
+        ctx.fillStyle = Math.random() > 0.5 ? "rgba(255,80,80,0.6)" : "rgba(255,255,255,0.3)";
+        ctx.fillRect(sx, sy, sw, 1 + Math.random() * 2);
+      }
+      ctx.restore();
+      // Banner text — sits below scramble banner area so they don't overlap
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.globalAlpha = blink ? 1 : 0.55;
+      ctx.font = "bold 18px Arial";
+      ctx.shadowColor = "#FF3300";
+      ctx.shadowBlur = 22;
+      ctx.fillStyle = "#FF6633";
+      ctx.fillText("⚠ SYSTEMS DAMAGED!", canvas.width / 2, 98);
+      ctx.font = "12px Arial";
+      ctx.shadowBlur = 6;
+      ctx.fillStyle = "#ffb09a";
+      ctx.fillText(`Controls impaired — ${secs}s`, canvas.width / 2, 114);
+      ctx.restore();
+    }
+
     function drawReverseAliens() {
       reverseAliens.forEach((ra) => ra.draw());
     }
@@ -1621,12 +2710,49 @@ export default function Game() {
     function drawCoinRain() {
       if (coinParticles.length === 0 && coinRainFrames <= 0) return;
       coinParticles.forEach((c) => {
+        const spinX = Math.abs(Math.cos(c.spin));
+        const rx = Math.max(0.5, c.size * spinX);
+        const ry = c.size;
+        const edgeH = Math.max(2, c.size * 0.28);
         ctx.save();
         ctx.globalAlpha = c.alpha;
-        ctx.fillStyle = "#FFD700"; ctx.shadowColor = "#FFD700"; ctx.shadowBlur = 8;
-        ctx.beginPath(); ctx.arc(c.x, c.y, c.size, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = "rgba(255,255,255,0.55)";
-        ctx.beginPath(); ctx.arc(c.x - c.size * 0.25, c.y - c.size * 0.25, c.size * 0.35, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowColor = "#FFD700";
+        ctx.shadowBlur = 12;
+        // Rim / edge (3-D depth)
+        if (spinX > 0.08) {
+          ctx.beginPath();
+          ctx.ellipse(c.x, c.y + edgeH, rx, ry, 0, 0, Math.PI * 2);
+          ctx.fillStyle = "#9A6700";
+          ctx.fill();
+        }
+        // Coin face with radial gradient
+        ctx.beginPath();
+        ctx.ellipse(c.x, c.y, rx, ry, 0, 0, Math.PI * 2);
+        const grad = ctx.createRadialGradient(c.x - rx * 0.3, c.y - ry * 0.3, ry * 0.08, c.x, c.y, Math.max(rx, ry));
+        grad.addColorStop(0, "#FFF9A0");
+        grad.addColorStop(0.45, "#FFD700");
+        grad.addColorStop(1, "#B8860B");
+        ctx.fillStyle = grad;
+        ctx.fill();
+        // "$" symbol — fades in when face-on
+        if (spinX > 0.35) {
+          ctx.save();
+          ctx.globalAlpha = c.alpha * Math.min(1, (spinX - 0.35) / 0.4);
+          ctx.fillStyle = "#7A4F00";
+          ctx.font = `bold ${Math.floor(c.size * 1.15)}px Arial`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("$", c.x, c.y + 1);
+          ctx.restore();
+        }
+        // Specular highlight
+        if (spinX > 0.15) {
+          ctx.globalAlpha = c.alpha * 0.55 * spinX;
+          ctx.beginPath();
+          ctx.ellipse(c.x - rx * 0.28, c.y - ry * 0.28, rx * 0.38, ry * 0.28, 0, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(255,255,255,0.75)";
+          ctx.fill();
+        }
         ctx.restore();
       });
       if (coinRainFrames > 0) {
@@ -1639,6 +2765,14 @@ export default function Game() {
         ctx.fillText("👑 COIN RAIN! 👑", canvas.width / 2, 95);
         ctx.restore();
       }
+    }
+
+    function drawLastEgg() {
+      if (lastEgg) lastEgg.draw();
+    }
+
+    function drawGravityWell() {
+      if (gravityWell) gravityWell.draw();
     }
 
     function drawSpotlight() {
@@ -1680,6 +2814,8 @@ export default function Game() {
       }
       rocks.forEach((r) => r.draw());
       meteorRocks.forEach((mr) => mr.draw());
+      drawLastEgg();
+      drawGravityWell();
       drawSpotlight();
       aliens.forEach((a) => a.draw());
       drawReverseAliens();
@@ -1693,7 +2829,10 @@ export default function Game() {
       drawFloatingTexts();
       drawComboDisplay();
       drawMeteorStormBanner();
+      drawScrambleBanner();
+      drawDamagedBanner();
       if (shaking) ctx.restore();
+      drawFireworks();
     }
 
     function gameLoop() {
@@ -1752,6 +2891,7 @@ export default function Game() {
           height: 16,
           speed: 13,
         });
+        playShoot();
         bulletsVal--;
         setBullets(bulletsVal);
         shootCooldown = 12;
@@ -1768,6 +2908,7 @@ export default function Game() {
           height: 16,
           speed: 13,
         });
+        playShoot();
         bulletsVal--;
         setBullets(bulletsVal);
         shootCooldown = 12;
@@ -1818,6 +2959,8 @@ export default function Game() {
       window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("wheel", onWheel);
       document.body.style.overflow = "";
+      clearTimeout(melodyInterval);
+      audioCtx.close();
     };
   }, [restartKey, gameStarted]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1881,6 +3024,14 @@ export default function Game() {
           75%  { opacity: 1; }
           100% { opacity: 0; }
         }
+        @keyframes hud-danger {
+          0%, 100% { box-shadow: 0 0 0px rgba(255,60,60,0); border-color: rgba(255,60,60,0.3); }
+          50%       { box-shadow: 0 0 14px rgba(255,60,60,0.9); border-color: rgba(255,60,60,0.95); }
+        }
+        @keyframes hud-warn {
+          0%, 100% { box-shadow: 0 0 0px rgba(255,160,0,0); border-color: rgba(180,100,255,0.3); }
+          50%       { box-shadow: 0 0 12px rgba(255,160,0,0.85); border-color: rgba(255,160,0,0.9); }
+        }
       `}</style>
 
       <div style={{
@@ -1942,42 +3093,44 @@ export default function Game() {
           {/* Bullets + buy button */}
           <div style={{
             display: "flex", alignItems: "center", gap: 6,
-            background: "rgba(180,100,255,0.1)", borderRadius: 8,
+            background: bullets < 5 ? "rgba(255,100,0,0.13)" : "rgba(180,100,255,0.1)", borderRadius: 8,
             padding: "5px 10px", border: "1px solid rgba(180,100,255,0.3)",
+            animation: bullets < 5 ? "hud-warn 0.9s ease-in-out infinite" : "none",
           }}>
             <span style={{ fontSize: 16 }}>🔫</span>
-            <span style={{ color: "#cc88ff", fontSize: 14, fontWeight: "bold" }}>
-              <span style={{ color: bullets === 0 ? "#ff6b6b" : "#fff", fontSize: 18 }}>{bullets}</span>
+            <span style={{ color: bullets < 5 ? "#ffaa44" : "#cc88ff", fontSize: 14, fontWeight: "bold" }}>
+              <span style={{ color: bullets === 0 ? "#ff4444" : bullets < 5 ? "#ffcc66" : "#fff", fontSize: 18, fontWeight: "bold" }}>{bullets}</span>
             </span>
             <button
               onClick={() => { buyBulletsRef.current = true; }}
               onKeyDown={(e) => e.preventDefault()}
               tabIndex={-1}
-              disabled={coins < 20}
-              title="Buy 5 bullets for 20 coins"
+              disabled={coins < 30}
+              title="Buy 5 bullets for 30 coins"
               style={{
                 marginLeft: 4,
-                background: coins >= 20 ? "linear-gradient(135deg,#7c3aed,#4f46e5)" : "rgba(80,80,80,0.4)",
-                color: coins >= 20 ? "#fff" : "#666",
+                background: coins >= 30 ? "linear-gradient(135deg,#7c3aed,#4f46e5)" : "rgba(80,80,80,0.4)",
+                color: coins >= 30 ? "#fff" : "#666",
                 border: "none",
                 borderRadius: 5,
                 padding: "2px 7px",
                 fontSize: 11,
                 fontWeight: "bold",
-                cursor: coins >= 20 ? "pointer" : "default",
+                cursor: coins >= 30 ? "pointer" : "default",
                 letterSpacing: 0.5,
                 lineHeight: "18px",
               }}
             >
-              +5 / 🪙20
+              +5 / 🪙30
             </button>
           </div>
 
           {/* Lives */}
           <div style={{
             display: "flex", alignItems: "center", gap: 6,
-            background: "rgba(255,107,107,0.1)", borderRadius: 8,
+            background: lives <= 1 ? "rgba(255,40,40,0.18)" : "rgba(255,107,107,0.1)", borderRadius: 8,
             padding: "5px 10px", border: "1px solid rgba(255,107,107,0.25)",
+            animation: lives <= 1 ? "hud-danger 0.7s ease-in-out infinite" : "none",
           }}>
             <span style={{ fontSize: 16, letterSpacing: 1 }}>
               {"❤️".repeat(Math.max(0, lives))}
@@ -1993,23 +3146,23 @@ export default function Game() {
               onClick={() => { buyLivesRef.current = true; }}
               onKeyDown={(e) => e.preventDefault()}
               tabIndex={-1}
-              disabled={coins < 70}
-              title="Buy 1 life for 70 coins"
+              disabled={coins < 120}
+              title="Buy 1 life for 120 coins"
               style={{
                 marginLeft: 4,
-                background: coins >= 70 ? "linear-gradient(135deg,#e53e3e,#c05621)" : "rgba(80,80,80,0.4)",
-                color: coins >= 70 ? "#fff" : "#666",
+                background: coins >= 120 ? "linear-gradient(135deg,#e53e3e,#c05621)" : "rgba(80,80,80,0.4)",
+                color: coins >= 120 ? "#fff" : "#666",
                 border: "none",
                 borderRadius: 5,
                 padding: "2px 7px",
                 fontSize: 11,
                 fontWeight: "bold",
-                cursor: coins >= 70 ? "pointer" : "default",
+                cursor: coins >= 120 ? "pointer" : "default",
                 letterSpacing: 0.5,
                 lineHeight: "18px",
               }}
             >
-              +1 / 🪙70
+              +1 / 🪙120
             </button>
           </div>
 
@@ -2024,6 +3177,33 @@ export default function Game() {
               <span style={{ color: "#fff", fontSize: 18 }}>{level}</span>
             </span>
           </div>
+
+          {/* Mute */}
+          <button
+            onClick={() => {
+              const next = !soundEnabled;
+              setSoundEnabled(next);
+              soundEnabledRef.current = next;
+              if (bgGainRef.current && audioCtxRef.current) {
+                bgGainRef.current.gain.setTargetAtTime(next ? 0.4 : 0, audioCtxRef.current.currentTime, 0.1);
+              }
+            }}
+            onKeyDown={(e) => e.preventDefault()}
+            tabIndex={-1}
+            title={soundEnabled ? "Mute sounds" : "Unmute sounds"}
+            style={{
+              background: "rgba(255,255,255,0.07)",
+              border: "1px solid rgba(255,255,255,0.2)",
+              borderRadius: 8,
+              padding: "5px 10px",
+              cursor: "pointer",
+              fontSize: 18,
+              lineHeight: 1,
+              color: "#fff",
+            }}
+          >
+            {soundEnabled ? "🔊" : "🔇"}
+          </button>
         </div>
 
         {/* Game Canvas */}
@@ -2085,7 +3265,7 @@ export default function Game() {
               {/* Play Button */}
               <button
                 className="play-btn"
-                onClick={() => setGameStarted(true)}
+                onClick={() => { window.scrollTo({ top: 0, behavior: "instant" }); setGameStarted(true); }}
                 style={{ background: "none", border: "none", cursor: "pointer", position: "relative", padding: 0 }}
               >
                 {/* Pulse rings */}
@@ -2229,7 +3409,7 @@ export default function Game() {
               {/* Title */}
               <div style={{ animation: "float-title 3s ease-in-out infinite", textAlign: "center" }}>
                 <div style={{ fontSize: 13, letterSpacing: 6, color: "rgba(255,120,120,0.75)", marginBottom: 8, textTransform: "uppercase" }}>
-                  Mission failed
+                  {eggWasShot ? "You shot the egg" : "Mission failed"}
                 </div>
                 <h1 style={{
                   margin: 0,
@@ -2238,11 +3418,18 @@ export default function Game() {
                   color: "#fff",
                   letterSpacing: 4,
                   textTransform: "uppercase",
-                  textShadow: "0 0 24px rgba(100,200,255,0.9), 0 0 50px rgba(100,200,255,0.45)",
+                  textShadow: eggWasShot
+                    ? "0 0 24px rgba(255,80,0,0.9), 0 0 50px rgba(255,80,0,0.45)"
+                    : "0 0 24px rgba(100,200,255,0.9), 0 0 50px rgba(100,200,255,0.45)",
                   animation: "glow-text 2.5s ease-in-out infinite",
                 }}>
-                  Game Over
+                  {eggWasShot ? "Cracked!" : "Game Over"}
                 </h1>
+                {eggWasShot && (
+                  <div style={{ fontSize: 14, color: "rgba(255,180,80,0.9)", marginTop: 10, letterSpacing: 1 }}>
+                    🥚 The Last Egg is gone forever...
+                  </div>
+                )}
               </div>
 
               {/* Stats row */}
@@ -2313,6 +3500,109 @@ export default function Game() {
                     borderTop: "18px solid transparent",
                     borderBottom: "18px solid transparent",
                     borderLeft: "30px solid rgba(100,200,255,0.9)",
+                    marginLeft: 8,
+                  }} />
+                </div>
+              </button>
+
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", letterSpacing: 3, textTransform: "uppercase" }}>
+                Play again
+              </div>
+            </div>
+          )}
+
+          {isMissionComplete && (
+            <div style={{
+              position: "absolute", inset: 0, zIndex: 20,
+              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+              background: "linear-gradient(180deg, #030d08 0%, #071a10 45%, #0a1f08 100%)",
+              fontFamily: "'Arial', sans-serif",
+              gap: 26,
+            }}>
+              {/* Star field */}
+              <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
+                {Array.from({ length: 50 }).map((_, i) => (
+                  <div key={i} style={{
+                    position: "absolute",
+                    left: `${Math.sin(i * 2.3) * 50 + 50}%`,
+                    top: `${Math.cos(i * 1.9) * 50 + 50}%`,
+                    width: i % 4 === 0 ? 3 : 2,
+                    height: i % 4 === 0 ? 3 : 2,
+                    borderRadius: "50%",
+                    background: i % 5 === 0 ? "#FFD700" : "#fff",
+                    opacity: 0.25 + (i % 5) * 0.12,
+                  }} />
+                ))}
+              </div>
+
+              {/* Egg graphic */}
+              <div style={{
+                fontSize: 72,
+                animation: "float-title 3s ease-in-out infinite",
+                filter: "drop-shadow(0 0 24px rgba(255,210,60,0.9)) drop-shadow(0 0 48px rgba(100,255,160,0.5))",
+              }}>🥚</div>
+
+              {/* Title */}
+              <div style={{ textAlign: "center", animation: "float-title 3.5s ease-in-out infinite 0.3s" }}>
+                <div style={{ fontSize: 12, letterSpacing: 6, color: "rgba(100,255,160,0.75)", marginBottom: 8, textTransform: "uppercase" }}>
+                  All aliens safe
+                </div>
+                <h1 style={{
+                  margin: 0,
+                  fontSize: "clamp(26px, 5.5vw, 44px)",
+                  fontWeight: 900,
+                  color: "#fff",
+                  letterSpacing: 4,
+                  textTransform: "uppercase",
+                  textShadow: "0 0 24px rgba(100,255,160,0.9), 0 0 50px rgba(255,210,60,0.5)",
+                }}>
+                  Mission Complete
+                </h1>
+                <div style={{ fontSize: 14, color: "rgba(200,255,220,0.65)", marginTop: 10, letterSpacing: 1 }}>
+                  The last egg is safe. The species will survive.
+                </div>
+              </div>
+
+              {/* Stats */}
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
+                {[
+                  { icon: "👽", label: "Caught",  value: score,  color: "rgba(100,255,160,0.1)", border: "rgba(100,255,160,0.25)", text: "rgba(100,255,160,0.8)" },
+                  { icon: "🪙", label: "Coins",   value: coins,  color: "rgba(255,215,0,0.1)",   border: "rgba(255,215,0,0.25)",   text: "rgba(255,215,0,0.8)" },
+                  { icon: "⭐", label: "Level",   value: level,  color: "rgba(255,215,0,0.08)",  border: "rgba(255,215,0,0.2)",    text: "rgba(255,215,0,0.7)" },
+                ].map(({ icon, label, value, color, border, text }) => (
+                  <div key={label} style={{
+                    display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+                    background: color, borderRadius: 10,
+                    padding: "10px 20px", border: `1px solid ${border}`,
+                  }}>
+                    <span style={{ fontSize: 22 }}>{icon}</span>
+                    <span style={{ fontSize: 11, color: text, letterSpacing: 2, textTransform: "uppercase" }}>{label}</span>
+                    <span style={{ fontSize: 28, fontWeight: 900, color: "#fff", lineHeight: 1 }}>{value}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Play again */}
+              <button
+                className="play-btn"
+                onClick={handleRestart}
+                style={{ background: "none", border: "none", cursor: "pointer", position: "relative", padding: 0 }}
+              >
+                <div style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "2px solid rgba(100,255,160,0.6)", animation: "pulse-ring 1.8s ease-out infinite" }} />
+                <div style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "2px solid rgba(100,255,160,0.4)", animation: "pulse-ring2 1.8s ease-out infinite 0.4s" }} />
+                <div style={{ position: "absolute", inset: -4, borderRadius: "50%", background: "conic-gradient(from 0deg, rgba(100,255,160,0.8), rgba(255,210,60,0.8), rgba(100,255,160,0), rgba(100,255,160,0.8))", animation: "spin-border 2s linear infinite" }} />
+                <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "#030d08", margin: 2 }} />
+                <div className="play-circle" style={{
+                  width: 90, height: 90, borderRadius: "50%",
+                  background: "rgba(100,255,160,0.12)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  position: "relative",
+                }}>
+                  <div className="play-triangle" style={{
+                    width: 0, height: 0,
+                    borderTop: "18px solid transparent",
+                    borderBottom: "18px solid transparent",
+                    borderLeft: "30px solid rgba(100,255,160,0.9)",
                     marginLeft: 8,
                   }} />
                 </div>

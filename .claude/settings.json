@@ -13,6 +13,11 @@
             "type": "command",
             "command": "node -e \"const f=process.env.CLAUDE_FILE||''; if(f.includes('locales/en.js')) { console.log('[hook] en.js updated — remember to add the matching key in locales/fr.js'); }\"",
             "blocking": false
+          },
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // empty' | { read -r f; [ \"${f%.js}\" != \"$f\" ] && node_modules/.bin/next lint --file \"$f\" 2>&1; } || true",
+            "statusMessage": "Running ESLint..."
           }
         ]
       }
