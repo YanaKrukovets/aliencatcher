@@ -10,7 +10,7 @@ export default function Home(props) {
     <>
       <Head>
         <title>
-          Alifallx: Don't Leave Them Behind. Browser Game by Yana
+          Alifallx: Don&apos;t Leave Them Behind. Browser Game by Yana
           Krukovets.
         </title>
         <meta

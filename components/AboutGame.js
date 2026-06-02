@@ -6,7 +6,7 @@ const AboutGame = () => {
       <div>
         <div className="max-w-wrapper px-5 mx-auto py-[20px] max-w-[65%] md:max-w-full">
           <h2 className="pb-[10px] text-[27px]" style={{ color: "#64C8FF" }}>
-            <b>Alifallx: Don't Leave Them Behind</b>
+            <b>Alifallx: Don&apos;t Leave Them Behind</b>
           </h2>
           <p className="mt-[10px]">
             Step into the colorful cosmos in Alifallx, a charming
