@@ -96,7 +96,7 @@ const About = () => {
           <a
             href="https://www.instagram.com/aliencatcher2025/"
             target="_blanc"
-            aria-label="Link to Alifallx instagram account"
+            aria-label="Link to AlifallX instagram account"
           >
             <AiFillInstagram className="social-media" role="presentation" />
           </a>

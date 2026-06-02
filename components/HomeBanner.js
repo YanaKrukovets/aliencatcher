@@ -186,7 +186,7 @@ const HeaderBanner = () => {
                 "Hello there!",
                 "My name is Yana.",
                 "I am showing my progress on a browser game.",
-                "Welcome to Alifallx: Don't Leave Them Behind.",
+                "Welcome to AlifallX: Don't Leave Them Behind.",
               ]}
               loop={true}
               cursor

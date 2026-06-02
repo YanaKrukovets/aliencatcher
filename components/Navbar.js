@@ -17,20 +17,15 @@ export default function Navbar() {
   nav = {
     item1: {
       label: "About the Game",
-      aria: "Link About game Alifallx: Don't Leave Them Behind",
+      aria: "Link About game AlifallX: Don't Leave Them Behind",
       href: "/#aboutgame",
     },
     item2: {
       label: "Game",
-      aria: "Link to Yana Krukovets game Alifallx: Don't Leave Them Behind",
+      aria: "Link to Yana Krukovets game AlifallX: Don't Leave Them Behind",
       href: "/game",
     },
     item3: {
-      label: "About the Author",
-      aria: "Link About Yana Krukovets",
-      href: "/#about",
-    },
-    item4: {
       label: "Contact",
       aria: "Link to Contact Yana Krukovets",
       href: "/#contact",
@@ -70,15 +65,16 @@ export default function Navbar() {
           <div className="flex justify-between max-w-wrapper px-5 mx-auto w-full">
             {/* Logo */}
             <div className="flex justify-between">
-              <div className="w-[60px] md:w-[50px] ">
+              <div className="w-[48px] md:w-[40px] ">
                 <Link href="/" passHref>
                   <Image
-                    src="/images/logos/logo-en.png"
-                    className="w-full max-w-[60px] object-cover my-[15px]"
-                    alt="YK - Yana Krukovets logo"
+                    src="/images/logos/alien-logo.svg"
+                    className="w-full max-w-[48px] object-cover my-[5px]"
+                    alt="AlifallX alien logo"
                     priority={true}
-                    width={250}
-                    height={250}
+                    width={60}
+                    height={80}
+                    unoptimized
                   />
                 </Link>
               </div>

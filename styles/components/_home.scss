@@ -893,7 +893,8 @@ footer {
 
 .topnav {
   overflow: hidden;
-  background-color: #333;
+  background-color: #080b1e;
+  border-bottom: 1px solid rgba(100, 200, 255, 0.2);
 }
 
 .menu-a {
@@ -901,7 +902,7 @@ footer {
   display: block;
   color: #f2f2f2;
   text-align: center;
-  padding: 14px 16px;
+  padding: 10px 16px;
   text-decoration: none;
   font-size: 17px;
 }

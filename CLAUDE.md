@@ -1,9 +1,9 @@
-# Alifallx: Don't Leave Them Behind — Claude Code Guide
+# AlifallX: Don't Leave Them Behind — Claude Code Guide
 
 ## Project Overview
 Space arcade game built with **Next.js 13 + Tailwind CSS**. Players control a spaceship on an HTML5 canvas, dodge rocks, and catch/destroy aliens. The site also has a landing page with About, Contact, and game info sections.
 
-Completed features: multiple levels with dynamic difficulty scaling (speed, spawn rates, color palettes per level), level-up banner/animation, countdown timer at game start.
+Completed features: multiple levels with dynamic difficulty scaling (speed, spawn rates, color palettes per level), level-up banner/animation, countdown timer at game start, coin economy (earn/buy bullets/shields/lives), meteor storm hazard with safe zones, UFO with tractor beam, gravity well, scramble control-flip, boss rocks, HeartAlien (+1 life), ShieldAlien (+1 shield), ReverseAlien (shoot for coins), The Last Egg win condition.
 
 Planned future features: multiplayer (2+ players on same device or online), power-ups and upgrades, leaderboard.
 
@@ -40,8 +40,10 @@ Planned future features: multiplayer (2+ players on same device or online), powe
 
 ## Architecture Notes
 - `pages/game.js` uses a single large `useEffect` containing the full game loop — keep game state in `let` vars inside the effect, React state only for UI overlay (score, lives, level, game-over screen).
-- Level progression: level 1→2 at 30 pts, then every 50 pts (`scoreVal < 30 ? 1 : Math.floor((scoreVal - 30) / 50) + 2`). Each level increases alien/rock speed, tightens spawn intervals, and switches color palettes (`LEVEL_PALETTES`/`LEVEL_COLORS`).
-- Multi-alien spawns activate at level 2+ via `multiChance`; speed variance adds at level 5+.
+- Level progression: level 1 while score < 3, then `Math.floor((score - 3) / 5) + 2` — so L2 at 3 pts, new level every 5 pts after that. Each level increases alien/rock speed (`+0.2/level`), tightens spawn intervals (min 55ms at high levels), and cycles color palettes (`LEVEL_PALETTES`/`LEVEL_COLORS`).
+- Multi-alien spawns activate at level 2+ via `multiChance`; speed variance adds at level 5+; boss rocks at level 10+.
+- Special entities: UFO (level 20+, 15 HP, abducts aliens), ReverseAlien (level 17+, rises from bottom), HeartAlien/ShieldAlien (bonus drops on rocks), GravityWell (level 35+), Scramble (level 37+), LastEgg (level 50, win condition).
+- Controls: `← →` / `A` / `D` move; `Space` shoot; `S` activate shield; `1` buy bullets (🪙30); `2` buy shield (🪙50); `3` buy life (🪙150).
 - Multiplayer (future) will need to extract ship logic into a reusable factory and manage multiple input sources (keyboard zones or WebSocket).
 - `alien-rescue-game.html` (standalone prototype) is no longer in the repo — reference only in git history.
 

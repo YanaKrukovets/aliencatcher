@@ -6,12 +6,65 @@ import { createSounds, createBackgroundMusic } from "../lib/game/sounds";
 import { createEntityClasses } from "../lib/game/entities";
 import { createDrawFunctions } from "../lib/game/draw";
 
+function HeartIcon({ filled, half }) {
+  return (
+    <svg width="18" height="17" viewBox="0 0 24 22" xmlns="http://www.w3.org/2000/svg">
+      {half && (
+        <defs>
+          <clipPath id="hud-half">
+            <rect x="0" y="0" width="12" height="22" />
+          </clipPath>
+        </defs>
+      )}
+      <path
+        d="M12 21.6C11.6 21.5 2 15.7 2 8.5 2 4.2 4.2 2 7 2c1.6 0 3 .8 4 2A5 5 0 0 1 17 2c2.8 0 5 2.2 5 6.5 0 7.2-9.6 13-10 13.1z"
+        fill="rgba(255,255,255,0.12)"
+      />
+      {(filled || half) && (
+        <path
+          d="M12 21.6C11.6 21.5 2 15.7 2 8.5 2 4.2 4.2 2 7 2c1.6 0 3 .8 4 2A5 5 0 0 1 17 2c2.8 0 5 2.2 5 6.5 0 7.2-9.6 13-10 13.1z"
+          fill="#e53e3e"
+          clipPath={half ? "url(#hud-half)" : undefined}
+        />
+      )}
+    </svg>
+  );
+}
+
+function BuyButton({ onClick, disabled, label, cost }) {
+  return (
+    <button
+      onClick={onClick}
+      onKeyDown={(e) => e.preventDefault()}
+      tabIndex={-1}
+      title={`${label} — costs 🪙${cost}`}
+      style={{
+        background: disabled ? "transparent" : "rgba(255,255,255,0.08)",
+        color: disabled ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.55)",
+        border: `1px solid ${disabled ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.18)"}`,
+        borderRadius: 4,
+        padding: "1px 6px",
+        fontSize: 10,
+        fontWeight: "bold",
+        cursor: disabled ? "default" : "pointer",
+        letterSpacing: 0.5,
+        lineHeight: "16px",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
 export default function Game() {
   const canvasRef = useRef(null);
   const [score, setScore] = useState(0);
   const [coins, setCoins] = useState(0);
-  const [bullets, setBullets] = useState(10);
+  const [bullets, setBullets] = useState(50);
+  const [shields, setShields] = useState(2);
   const [lives, setLives] = useState(3);
+  const [lifeGained, setLifeGained] = useState(false);
   const [halfDamage, setHalfDamage] = useState(false);
   const [level, setLevel] = useState(1);
   const [isGameOver, setIsGameOver] = useState(false);
@@ -23,7 +76,10 @@ export default function Game() {
   const [eggWasShot, setEggWasShot] = useState(false);
   const buyBulletsRef = useRef(false);
   const buyLivesRef = useRef(false);
+  const buyShieldsRef = useRef(false);
   const soundEnabledRef = useRef(true);
+  const pausedRef = useRef(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const audioCtxRef = useRef(null);
   const bgGainRef = useRef(null);
@@ -31,17 +87,30 @@ export default function Game() {
   useEffect(() => {
     if (gameStarted && !isGameOver) {
       document.body.style.overflow = "hidden";
+      document.body.classList.add("game-active");
     } else {
       document.body.style.overflow = "";
+      document.body.classList.remove("game-active");
     }
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+      document.body.classList.remove("game-active");
+    };
   }, [gameStarted, isGameOver]);
+
+  useEffect(() => {
+    if (lifeGained) {
+      const t = setTimeout(() => setLifeGained(false), 800);
+      return () => clearTimeout(t);
+    }
+  }, [lifeGained]);
 
   const handleRestart = () => {
     window.scrollTo({ top: 0, behavior: "instant" });
     setScore(0);
     setCoins(0);
-    setBullets(10);
+    setBullets(50);
+    setShields(2);
     setLives(3);
     setHalfDamage(false);
     setLevel(1);
@@ -49,6 +118,8 @@ export default function Game() {
     setIsMissionComplete(false);
     setEggWasShot(false);
     setCountdown(null);
+    pausedRef.current = false;
+    setIsPaused(false);
     setLevelUpBanner(null);
     setRestartKey((k) => k + 1);
   };
@@ -72,7 +143,8 @@ export default function Game() {
     // ---- GAME STATE ----
     let scoreVal = 0;
     let coinsVal = 0;
-    let bulletsVal = 10;
+    let bulletsVal = 50;
+    let meteorShieldsVal = 2;
     let bulletsList = [];
     let shootCooldown = 0;
     let livesVal = 3;
@@ -109,13 +181,18 @@ export default function Game() {
     let meteorStormTimer = 0;
     let meteorStormSpawnTimer = 0;
     let meteorRocks = [];
+    let meteorStormSafePos = 0; // cycles 0=left, 1=middle, 2=right
     let meteorHalfDamage = false;
+    let shieldActive = false;
+    let shieldFrames = 0;
+    let shieldAngle = 0;
     let reverseAliens = [];
     let reverseAlienTimer = 0;
+    let heartAliens = [];
+    let shieldAliens = [];
+    let bombAliens = [];
     let ufo = null;
     let ufoTimer = 0;
-    let sosAlien = null;
-    let sosAlienTimer = 0;
     let coinRainFrames = 0;
     let coinRainSpawnTimer = 0;
     let coinRainCoinsTimer = 0;
@@ -159,7 +236,7 @@ export default function Game() {
       return Math.max(55, 200 - (levelVal - 1) * 20);
     };
     const getAlienSpeed = () => 1 + (levelVal - 1) * 0.2;
-    const getRockSpeed  = () => 0.8 + (levelVal - 1) * 0.2;
+    const getRockSpeed  = () => 1 + (levelVal - 1) * 0.2;
 
     // ---- BACKGROUND ELEMENTS ----
     const distantPlanets = [
@@ -234,7 +311,7 @@ export default function Game() {
     };
     const {
       Rock, Alien, Particle, FireworkParticle,
-      MeteorRock, ReverseAlien, UFO, SOSAlien, GravityWell, LastEgg,
+      MeteorRock, ReverseAlien, UFO, GravityWell, LastEgg, HeartAlien, ShieldAlien, BombAlien,
     } = createEntityClasses(ctx, canvas, ship, {
       getLevel: () => levelVal,
       getRockSpeed,
@@ -309,11 +386,15 @@ export default function Game() {
       get scrambleWarnFrames() { return scrambleWarnFrames; },
       get damagedFrames()      { return damagedFrames; },
       get meteorStormFrames()  { return meteorStormFrames; },
+      get meteorStormSafePos() { return meteorStormSafePos; },
+      get shieldActive()       { return shieldActive; },
+      get shieldFrames()       { return shieldFrames; },
+      get shieldAngle()        { return shieldAngle; },
+      set shieldAngle(v)       { shieldAngle = v; },
       get fireworksFrames()    { return fireworksFrames; },
       get coinRainFrames()     { return coinRainFrames; },
       get shipImgLoaded()      { return shipImgLoaded; },
       get ufo()                { return ufo; },
-      get sosAlien()           { return sosAlien; },
       get gravityWell()        { return gravityWell; },
       get lastEgg()            { return lastEgg; },
       get spotlightAlien()     { return spotlightAlien; },
@@ -323,6 +404,9 @@ export default function Game() {
       get rocks()              { return rocks; },
       get meteorRocks()        { return meteorRocks; },
       get reverseAliens()      { return reverseAliens; },
+      get heartAliens()        { return heartAliens; },
+      get shieldAliens()       { return shieldAliens; },
+      get bombAliens()         { return bombAliens; },
       get floatingTexts()      { return floatingTexts; },
       get particles()          { return particles; },
       get engineTrails()       { return engineTrails; },
@@ -392,14 +476,28 @@ export default function Game() {
 
       if (buyLivesRef.current) {
         buyLivesRef.current = false;
-        if (coinsVal >= 120) {
-          coinsVal -= 120;
+        if (coinsVal >= 150) {
+          coinsVal -= 150;
           livesVal += 1;
           setCoins(coinsVal);
           setLives(livesVal);
+          setLifeGained(true);
           pauseFrames = 90;
           buyFlashFrames = 90;
           buyFlashText = "❤️ +1 life!";
+        }
+      }
+
+      if (buyShieldsRef.current) {
+        buyShieldsRef.current = false;
+        if (coinsVal >= 50) {
+          coinsVal -= 50;
+          meteorShieldsVal += 1;
+          setCoins(coinsVal);
+          setShields(meteorShieldsVal);
+          pauseFrames = 90;
+          buyFlashFrames = 90;
+          buyFlashText = "🛡️ +1 shield!";
         }
       }
 
@@ -482,6 +580,27 @@ export default function Game() {
                   a.onRock = false;
                   a.fallSpeed = 1;
                   a.rotationSpeed = a.direction * 0.1;
+                }
+              });
+              heartAliens.forEach((ha) => {
+                if (ha.rock === rock && ha.onRock) {
+                  ha.onRock = false;
+                  ha.fallSpeed = 1;
+                  ha.rotationSpeed = ha.direction * 0.1;
+                }
+              });
+              shieldAliens.forEach((sa) => {
+                if (sa.rock === rock && sa.onRock) {
+                  sa.onRock = false;
+                  sa.fallSpeed = 1;
+                  sa.rotationSpeed = sa.direction * 0.1;
+                }
+              });
+              bombAliens.forEach((ba) => {
+                if (ba.rock === rock && ba.onRock) {
+                  ba.onRock = false;
+                  ba.fallSpeed = 1;
+                  ba.rotationSpeed = ba.direction * 0.1;
                 }
               });
               rocks.splice(j, 1);
@@ -576,7 +695,16 @@ export default function Game() {
         if (hit) bulletsList.splice(i, 1);
       }
 
-      const newLevel = scoreVal < 3 ? 1 : Math.floor((scoreVal - 3) / 5) + 2;
+      const newLevel = (() => {
+        if (scoreVal < 3) return 1;
+        let lvl = 2, used = 3;
+        while (true) {
+          const cost = lvl < 10 ? 5 : lvl < 15 ? 7 : lvl < 20 ? 10 : 15;
+          if (scoreVal < used + cost) return lvl;
+          used += cost;
+          lvl++;
+        }
+      })();
       if (newLevel !== levelVal) {
         levelVal = newLevel;
         setLevel(levelVal);
@@ -586,12 +714,15 @@ export default function Game() {
         levelUpTimerId = setTimeout(() => setLevelUpBanner(null), 1800);
       }
 
+      if (shieldFrames > 0) { shieldFrames--; if (shieldFrames === 0) shieldActive = false; }
+
       const stormInterval = Math.max(600, 1800 - Math.floor(Math.max(0, levelVal - 15) / 2) * 180);
       if (levelVal >= 1 && meteorStormFrames <= 0) {
         meteorStormTimer++;
         if (meteorStormTimer >= stormInterval) {
           meteorStormTimer = 0;
           if (Math.random() < 0.65) {
+            meteorStormSafePos = (meteorStormSafePos + 1) % 3;
             meteorStormFrames = 600;
             screenShakeFrames = 30;
             screenShakeMag = 8;
@@ -608,14 +739,19 @@ export default function Game() {
           const count = 2 + Math.floor(Math.random() * 2);
           const slots = count + 2;
           const laneW = canvas.width / slots;
-          const skipSlot = Math.floor(Math.random() * slots);
-          let spawned = 0;
-          for (let mi = 0; mi < slots && spawned < count; mi++) {
-            if (mi === skipSlot) continue;
+          const skipSlot = meteorStormSafePos === 0 ? 0
+            : meteorStormSafePos === 2 ? slots - 1
+            : Math.floor(slots / 2);
+          const available = [];
+          for (let mi = 0; mi < slots; mi++) { if (mi !== skipSlot) available.push(mi); }
+          for (let i = available.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [available[i], available[j]] = [available[j], available[i]];
+          }
+          for (let i = 0; i < count; i++) {
             const mr = new MeteorRock();
-            mr.x = laneW * (mi + 0.5) + (Math.random() - 0.5) * laneW * 0.3;
+            mr.x = laneW * (available[i] + 0.5) + (Math.random() - 0.5) * laneW * 0.3;
             meteorRocks.push(mr);
-            spawned++;
           }
         }
       } else {
@@ -628,6 +764,12 @@ export default function Game() {
             for (let i = 0; i < rock.alienCount; i++) aliens.push(new Alien(rock, i));
             if (spotlightAlien === null) spotlightAlien = aliens[aliens.length - 1];
           }
+          if (!rock.hasAlien) {
+            const bonusRoll = Math.random();
+            if (levelVal >= 4 && bonusRoll < 0.07) heartAliens.push(new HeartAlien(rock, 0));
+            else if (levelVal >= 3 && bonusRoll < 0.22) shieldAliens.push(new ShieldAlien(rock, 0));
+            else if (levelVal >= 7 && bonusRoll < 0.32) bombAliens.push(new BombAlien(rock, 0));
+          }
         }
       }
 
@@ -638,25 +780,35 @@ export default function Game() {
           rock.y += ay * 0.06;
         }
         rock.update();
-        if (!invulnerable && rock.checkCollision(ship)) loseLife();
+        if (!invulnerable && rock.checkCollision(ship)) { loseLife(); return false; }
         return !rock.isOffScreen();
       });
 
       meteorRocks = meteorRocks.filter((mr) => {
         mr.update();
-        if (!invulnerable && mr.checkCollision(ship)) {
-          if (meteorHalfDamage) {
-            meteorHalfDamage = false;
-            setHalfDamage(false);
-            playMeteorImpact();
-            loseLife();
-          } else {
-            meteorHalfDamage = true;
-            setHalfDamage(true);
-            playMeteorImpact();
-            invulnerable = true;
-            floatingTexts.push({ x: ship.x + ship.width / 2, y: ship.y - 10, text: "½ hit!", alpha: 1, vy: 1.2, color: "#ff8800" });
-            setTimeout(() => { invulnerable = false; }, 800);
+        if (mr.checkCollision(ship)) {
+          if (shieldActive) {
+            for (let k = 0; k < 18; k++) {
+              const p = new Particle(mr.x + mr.width / 2, mr.y + mr.height / 2, ["#44CCFF", "#88EEFF", "#ffffff"][k % 3]);
+              p.vx = (Math.random() - 0.5) * 8; p.vy = (Math.random() - 0.5) * 8; p.life = 30; p.size = 3 + Math.random() * 3;
+              particles.push(p);
+            }
+            return false;
+          }
+          if (!invulnerable) {
+            if (meteorHalfDamage) {
+              meteorHalfDamage = false;
+              setHalfDamage(false);
+              playMeteorImpact();
+              loseLife();
+            } else {
+              meteorHalfDamage = true;
+              setHalfDamage(true);
+              playMeteorImpact();
+              invulnerable = true;
+              floatingTexts.push({ x: ship.x + ship.width / 2, y: ship.y - 10, text: "½ hit!", alpha: 1, vy: 1.2, color: "#ff8800" });
+              setTimeout(() => { invulnerable = false; }, 800);
+            }
           }
         }
         return !mr.isOffScreen();
@@ -716,6 +868,66 @@ export default function Game() {
       }
       reverseAliens = reverseAliens.filter((ra) => { ra.update(); return !ra.isOffScreen(); });
 
+      heartAliens = heartAliens.filter((ha) => {
+        ha.update();
+        if (ha.isDoneBeingCaught()) return false;
+        if (!ha.caught && ha.checkCatch()) {
+          ha.caught = true;
+          playCatch(false, false);
+          livesVal += 1;
+          setLives(livesVal);
+          setLifeGained(true);
+          floatingTexts.push({ x: ha.x + ha.width / 2, y: ha.y - 10, text: "❤️ +1 life!", alpha: 1, vy: 1.8, color: "#FF4466" });
+          for (let j = 0; j < 20; j++) {
+            particles.push(new Particle(ha.x + ha.width / 2, ha.y + ha.height / 2, ["#FF4466", "#FF88AA", "#ffffff"][j % 3]));
+          }
+        }
+        return !ha.isDoneBeingCaught() && !ha.isOffScreen();
+      });
+
+      shieldAliens = shieldAliens.filter((sa) => {
+        sa.update();
+        if (sa.isDoneBeingCaught()) return false;
+        if (!sa.caught && sa.checkCatch()) {
+          sa.caught = true;
+          playCatch(false, false);
+          meteorShieldsVal += 1;
+          setShields(meteorShieldsVal);
+          floatingTexts.push({ x: sa.x + sa.width / 2, y: sa.y - 10, text: "🛡️ +1 shield!", alpha: 1, vy: 1.8, color: "#44CCFF" });
+          for (let j = 0; j < 20; j++) {
+            particles.push(new Particle(sa.x + sa.width / 2, sa.y + sa.height / 2, ["#44CCFF", "#88EEFF", "#ffffff"][j % 3]));
+          }
+        }
+        return !sa.isDoneBeingCaught() && !sa.isOffScreen();
+      });
+
+      bombAliens = bombAliens.filter((ba) => {
+        ba.update();
+        if (!ba.hit && ba.checkHit()) {
+          ba.hit = true;
+          loseLife();
+          playExplosion();
+          floatingTexts.push({ x: ba.x + ba.width / 2, y: ba.y - 10, text: "💣 -1 life!", alpha: 1, vy: 1.8, color: "#FF6600" });
+          screenShakeFrames = 22; screenShakeMag = 11;
+          const expCx = ba.x + ba.width / 2;
+          const expCy = ba.y + ba.height / 2;
+          const hotColors = ["#FF6600", "#FF9900", "#FFCC00", "#FF3300", "#FF0000", "#ffffff", "#FFEE88"];
+          const smokeColors = ["#442200", "#331100", "#666666"];
+          for (let j = 0; j < 60; j++) {
+            const angle = Math.random() * Math.PI * 2;
+            const spd = 3 + Math.random() * 14;
+            const color = j < 50
+              ? hotColors[Math.floor(Math.random() * hotColors.length)]
+              : smokeColors[Math.floor(Math.random() * smokeColors.length)];
+            fireworkParticles.push(new FireworkParticle(expCx, expCy, color, Math.cos(angle) * spd, Math.sin(angle) * spd, j < 25));
+          }
+          for (let j = 0; j < 20; j++) {
+            particles.push(new Particle(expCx, expCy, ["#FF6600", "#FF9944", "#333333"][j % 3]));
+          }
+        }
+        return !ba.hit && !ba.isOffScreen();
+      });
+
       ufoTimer++;
       if (levelVal >= 20 && !ufo && ufoTimer >= 440) {
         ufoTimer = 0;
@@ -739,28 +951,6 @@ export default function Game() {
         if (ufo.isOffScreen()) ufo = null;
       }
 
-      sosAlienTimer++;
-      if (levelVal >= 23 && !sosAlien && sosAlienTimer >= 520) {
-        sosAlienTimer = 0;
-        sosAlien = new SOSAlien();
-      }
-      if (sosAlien) {
-        sosAlien.update();
-        if (sosAlien.checkCatch()) {
-          sosAlien.caught = true;
-          coinsVal += 200;
-          setCoins(coinsVal);
-          const hColors = ["#FF1493", "#FF69B4", "#FF4081", "#FF0080", "#ffffff"];
-          for (let k = 0; k < 50; k++) {
-            const p = new Particle(sosAlien.x + sosAlien.width / 2, sosAlien.y + sosAlien.height / 2, hColors[Math.floor(Math.random() * 5)]);
-            p.vx = (Math.random() - 0.5) * 9; p.vy = (Math.random() - 0.5) * 9; p.life = 55; p.size = 4 + Math.random() * 4;
-            particles.push(p);
-          }
-          floatingTexts.push({ x: sosAlien.x + sosAlien.width / 2, y: sosAlien.y - 10, text: "❤️ +200!", alpha: 1, vy: 2, color: "#FF69B4" });
-          screenShakeFrames = 15; screenShakeMag = 5;
-        }
-        if (sosAlien.isDoneBeingCaught() || sosAlien.isOffScreen()) sosAlien = null;
-      }
 
       gravityWellTimer++;
       if (levelVal >= 35 && !gravityWell && gravityWellTimer >= 900) {
@@ -867,6 +1057,26 @@ export default function Game() {
         setTimeout(() => setCountdown(null), 700);
       }
 
+      if (pausedRef.current) {
+        drawFrame();
+        ctx.save();
+        ctx.fillStyle = "rgba(5,7,26,0.6)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.font = "bold 36px Arial";
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#fff";
+        ctx.shadowColor = "rgba(100,200,255,0.8)";
+        ctx.shadowBlur = 24;
+        ctx.fillText("⏸ PAUSED", canvas.width / 2, canvas.height / 2 - 10);
+        ctx.font = "14px Arial";
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "rgba(255,255,255,0.45)";
+        ctx.fillText("Press P or Escape to resume", canvas.width / 2, canvas.height / 2 + 22);
+        ctx.restore();
+        animFrameId = requestAnimationFrame(gameLoop);
+        return;
+      }
+
       updateGame();
       drawFrame();
 
@@ -895,9 +1105,23 @@ export default function Game() {
     // ---- CONTROLS ----
     const onKeyDown = (e) => {
       keys[e.key] = true;
-      if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", " "].includes(e.key) && gameRunning) {
+      if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", " ", "s", "S", "1", "2", "3"].includes(e.key) && gameRunning) {
         e.preventDefault();
       }
+      if ((e.key === "p" || e.key === "P" || e.key === "Escape") && gameRunning && readyFrames <= 0) {
+        pausedRef.current = !pausedRef.current;
+        setIsPaused(pausedRef.current);
+      }
+      if ((e.key === "s" || e.key === "S") && gameRunning && readyFrames <= 0 && !shieldActive && meteorShieldsVal > 0) {
+        meteorShieldsVal--;
+        setShields(meteorShieldsVal);
+        shieldActive = true;
+        shieldFrames = 300;
+        floatingTexts.push({ x: ship.x + ship.width / 2, y: ship.y - 30, text: "🛡️ Shield!", alpha: 1, vy: 1.5, color: "#44CCFF" });
+      }
+      if (e.key === "1" && gameRunning && readyFrames <= 0) { buyBulletsRef.current = true; }
+      if (e.key === "2" && gameRunning && readyFrames <= 0) { buyShieldsRef.current = true; }
+      if (e.key === "3" && gameRunning && readyFrames <= 0) { buyLivesRef.current = true; }
       if (e.key === " " && bulletsVal > 0 && shootCooldown <= 0 && gameRunning && readyFrames <= 0) {
         bulletsList.push({ x: ship.x + ship.width / 2 - 2, y: ship.y - 10, width: 4, height: 16, speed: 13 });
         playShoot();
@@ -968,8 +1192,8 @@ export default function Game() {
   return (
     <>
       <Head>
-        <title>Alifallx: Don&apos;t Leave Them Behind</title>
-        <meta name="description" content="Catch the falling Alifallx with your spaceship. Don't leave them behind!" />
+        <title>AlifallX: Don&apos;t Leave Them Behind</title>
+        <meta name="description" content="Catch the falling AlifallX with your spaceship. Don't leave them behind!" />
       </Head>
       <style>{`
         @keyframes pulse-ring {
@@ -1025,6 +1249,11 @@ export default function Game() {
           75%  { opacity: 1; }
           100% { opacity: 0; }
         }
+        @keyframes hud-life-gain {
+          0%   { box-shadow: 0 0 0px rgba(255,68,102,0); }
+          25%  { box-shadow: 0 0 22px rgba(255,68,102,1), 0 0 8px rgba(255,180,200,0.9); }
+          100% { box-shadow: 0 0 0px rgba(255,68,102,0); }
+        }
         @keyframes hud-danger {
           0%, 100% { box-shadow: 0 0 0px rgba(255,60,60,0); border-color: rgba(255,60,60,0.3); }
           50%       { box-shadow: 0 0 14px rgba(255,60,60,0.9); border-color: rgba(255,60,60,0.95); }
@@ -1037,7 +1266,7 @@ export default function Game() {
 
       <div style={{
         display: "flex", flexDirection: "column",
-        height: "100vh", paddingTop: NAV_HEIGHT,
+        height: "100vh", paddingTop: gameStarted && !isGameOver ? 0 : NAV_HEIGHT,
         boxSizing: "border-box", overflow: "hidden",
         alignItems: "center", background: "#05071a",
       }}>
@@ -1049,81 +1278,98 @@ export default function Game() {
         {/* HUD Bar */}
         <div style={{
           height: HUD_HEIGHT,
-          background: "linear-gradient(90deg, #070b1f 0%, #12173a 40%, #12173a 60%, #070b1f 100%)",
-          borderBottom: "2px solid rgba(100,200,255,0.25)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          gap: "clamp(0.4rem, 2vw, 1.4rem)", flexShrink: 0,
-          userSelect: "none", fontFamily: "'Arial', sans-serif", padding: "0 8px",
+          background: "rgba(5,7,26,0.97)",
+          borderBottom: "1px solid rgba(100,200,255,0.12)",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          flexShrink: 0,
+          userSelect: "none", fontFamily: "'Arial', sans-serif", padding: "0 14px",
         }}>
-          {/* Aliens caught */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(100,200,255,0.1)", borderRadius: 8, padding: "5px 12px", border: "1px solid rgba(100,200,255,0.25)" }}>
-            <AlienIcon />
-            <span style={{ color: "#64C8FF", fontSize: 14, fontWeight: "bold", letterSpacing: 1 }}>
-              <span style={{ color: "#fff", fontSize: 18 }}>{score}</span>
-            </span>
+
+          {/* Left: Score + Level */}
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <AlienIcon />
+              <span style={{ fontSize: 26, fontWeight: 900, color: "#fff", letterSpacing: 1, lineHeight: 1 }}>{score}</span>
+            </div>
+            <div style={{ width: 1, height: 22, background: "rgba(255,255,255,0.1)" }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <span style={{ fontSize: 10, color: "rgba(255,215,0,0.5)", letterSpacing: 2, textTransform: "uppercase" }}>LVL</span>
+              <span style={{ fontSize: 20, fontWeight: 700, color: "#FFD700", lineHeight: 1 }}>{level}</span>
+            </div>
           </div>
 
-          {/* Coins */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,215,0,0.1)", borderRadius: 8, padding: "5px 12px", border: "1px solid rgba(255,215,0,0.3)" }}>
-            <span style={{ fontSize: 16 }}>🪙</span>
-            <span style={{ color: "#FFD700", fontSize: 14, fontWeight: "bold" }}>
-              <span style={{ color: "#fff", fontSize: 18 }}>{coins}</span>
-            </span>
+          {/* Center: Lives */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, animation: lifeGained ? "hud-life-gain 0.8s ease-out" : lives <= 1 ? "hud-danger 0.7s ease-in-out infinite" : "none", borderRadius: 6, padding: "3px 8px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              {Array.from({ length: Math.max(lives, 3) }).map((_, i) => (
+                <HeartIcon
+                  key={i}
+                  filled={i < (halfDamage ? lives - 1 : lives)}
+                  half={halfDamage && i === lives - 1}
+                />
+              ))}
+            </div>
+            <BuyButton onClick={() => { buyLivesRef.current = true; }} disabled={coins < 150} label="+1 🪙150" cost={150} />
           </div>
 
-          {/* Bullets + buy button */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, background: bullets < 5 ? "rgba(255,100,0,0.13)" : "rgba(180,100,255,0.1)", borderRadius: 8, padding: "5px 10px", border: "1px solid rgba(180,100,255,0.3)", animation: bullets < 5 ? "hud-warn 0.9s ease-in-out infinite" : "none" }}>
-            <span style={{ fontSize: 16 }}>🔫</span>
-            <span style={{ color: bullets < 5 ? "#ffaa44" : "#cc88ff", fontSize: 14, fontWeight: "bold" }}>
-              <span style={{ color: bullets === 0 ? "#ff4444" : bullets < 5 ? "#ffcc66" : "#fff", fontSize: 18, fontWeight: "bold" }}>{bullets}</span>
-            </span>
-            <button onClick={() => { buyBulletsRef.current = true; }} onKeyDown={(e) => e.preventDefault()} tabIndex={-1} disabled={coins < 30} title="Buy 5 bullets for 30 coins" style={{ marginLeft: 4, background: coins >= 30 ? "linear-gradient(135deg,#7c3aed,#4f46e5)" : "rgba(80,80,80,0.4)", color: coins >= 30 ? "#fff" : "#666", border: "none", borderRadius: 5, padding: "2px 7px", fontSize: 11, fontWeight: "bold", cursor: coins >= 30 ? "pointer" : "default", letterSpacing: 0.5, lineHeight: "18px" }}>
-              +5 / 🪙30
+          {/* Right: Coins, Bullets, Shields, Mute */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {/* Coins */}
+            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <span style={{ fontSize: 14 }}>🪙</span>
+              <span style={{ fontSize: 17, fontWeight: 700, color: "#FFD700", lineHeight: 1 }}>{coins}</span>
+            </div>
+
+            <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.1)" }} />
+
+            {/* Bullets */}
+            <div style={{ display: "flex", alignItems: "center", gap: 5, animation: bullets < 5 ? "hud-warn 0.9s ease-in-out infinite" : "none", borderRadius: 5, padding: "2px 4px" }}>
+              <span style={{ fontSize: 14 }}>🔫</span>
+              <span style={{ fontSize: 17, fontWeight: 700, color: bullets === 0 ? "#ff4444" : bullets < 5 ? "#ffcc66" : "#fff", lineHeight: 1 }}>{bullets}</span>
+              <BuyButton onClick={() => { buyBulletsRef.current = true; }} disabled={coins < 30} label="+5 🪙30" cost={30} />
+            </div>
+
+            {/* Shields */}
+            <div style={{ display: "flex", alignItems: "center", gap: 5, animation: shields === 0 ? "hud-warn 0.9s ease-in-out infinite" : "none", borderRadius: 5, padding: "2px 4px" }}>
+              <span style={{ fontSize: 14 }}>🛡️</span>
+              <span style={{ fontSize: 17, fontWeight: 700, color: shields === 0 ? "#ff4444" : "#fff", lineHeight: 1 }}>{shields}</span>
+              <BuyButton onClick={() => { buyShieldsRef.current = true; }} disabled={coins < 50} label="+1 🪙50" cost={50} />
+            </div>
+
+            <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.1)" }} />
+
+            {/* Pause */}
+            <button
+              onClick={() => {
+                pausedRef.current = !pausedRef.current;
+                setIsPaused(pausedRef.current);
+              }}
+              onKeyDown={(e) => e.preventDefault()}
+              tabIndex={-1}
+              title={isPaused ? "Resume (P)" : "Pause (P)"}
+              style={{ background: "transparent", border: "none", borderRadius: 6, padding: "4px 6px", cursor: "pointer", fontSize: 17, lineHeight: 1, color: "rgba(255,255,255,0.6)" }}
+            >
+              {isPaused ? "▶️" : "⏸️"}
+            </button>
+
+            {/* Mute */}
+            <button
+              onClick={() => {
+                const next = !soundEnabled;
+                setSoundEnabled(next);
+                soundEnabledRef.current = next;
+                if (bgGainRef.current && audioCtxRef.current) {
+                  bgGainRef.current.gain.setTargetAtTime(next ? 0.4 : 0, audioCtxRef.current.currentTime, 0.1);
+                }
+              }}
+              onKeyDown={(e) => e.preventDefault()}
+              tabIndex={-1}
+              title={soundEnabled ? "Mute sounds" : "Unmute sounds"}
+              style={{ background: "transparent", border: "none", borderRadius: 6, padding: "4px 6px", cursor: "pointer", fontSize: 17, lineHeight: 1, color: "rgba(255,255,255,0.6)", opacity: soundEnabled ? 1 : 0.4 }}
+            >
+              {soundEnabled ? "🔊" : "🔇"}
             </button>
           </div>
-
-          {/* Lives */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, background: lives <= 1 ? "rgba(255,40,40,0.18)" : "rgba(255,107,107,0.1)", borderRadius: 8, padding: "5px 10px", border: "1px solid rgba(255,107,107,0.25)", animation: lives <= 1 ? "hud-danger 0.7s ease-in-out infinite" : "none" }}>
-            <span style={{ fontSize: 16, letterSpacing: 1 }}>
-              {"❤️".repeat(Math.max(0, lives))}
-              {halfDamage && (
-                <span style={{ position: "relative", display: "inline-block" }}>
-                  🖤
-                  <span style={{ position: "absolute", left: 0, top: 0, overflow: "hidden", width: "50%" }}>❤️</span>
-                </span>
-              )}
-              {"🖤".repeat(Math.max(0, 3 - lives - (halfDamage ? 1 : 0)))}
-            </span>
-            <button onClick={() => { buyLivesRef.current = true; }} onKeyDown={(e) => e.preventDefault()} tabIndex={-1} disabled={coins < 120} title="Buy 1 life for 120 coins" style={{ marginLeft: 4, background: coins >= 120 ? "linear-gradient(135deg,#e53e3e,#c05621)" : "rgba(80,80,80,0.4)", color: coins >= 120 ? "#fff" : "#666", border: "none", borderRadius: 5, padding: "2px 7px", fontSize: 11, fontWeight: "bold", cursor: coins >= 120 ? "pointer" : "default", letterSpacing: 0.5, lineHeight: "18px" }}>
-              +1 / 🪙120
-            </button>
-          </div>
-
-          {/* Level */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,215,0,0.07)", borderRadius: 8, padding: "5px 12px", border: "1px solid rgba(255,215,0,0.2)" }}>
-            <span style={{ fontSize: 16 }}>⭐</span>
-            <span style={{ color: "#FFD700", fontSize: 14, fontWeight: "bold" }}>
-              <span style={{ color: "#fff", fontSize: 18 }}>{level}</span>
-            </span>
-          </div>
-
-          {/* Mute */}
-          <button
-            onClick={() => {
-              const next = !soundEnabled;
-              setSoundEnabled(next);
-              soundEnabledRef.current = next;
-              if (bgGainRef.current && audioCtxRef.current) {
-                bgGainRef.current.gain.setTargetAtTime(next ? 0.4 : 0, audioCtxRef.current.currentTime, 0.1);
-              }
-            }}
-            onKeyDown={(e) => e.preventDefault()}
-            tabIndex={-1}
-            title={soundEnabled ? "Mute sounds" : "Unmute sounds"}
-            style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 8, padding: "5px 10px", cursor: "pointer", fontSize: 18, lineHeight: 1, color: "#fff" }}
-          >
-            {soundEnabled ? "🔊" : "🔇"}
-          </button>
         </div>
 
         {/* Game Canvas */}
@@ -1140,7 +1386,7 @@ export default function Game() {
               </div>
               <div style={{ animation: "float-title 3s ease-in-out infinite", textAlign: "center" }}>
                 <div style={{ fontSize: 14, letterSpacing: 6, color: "rgba(100,200,255,0.7)", marginBottom: 8, textTransform: "uppercase" }}>Welcome to</div>
-                <h1 style={{ margin: 0, fontSize: "clamp(28px, 6vw, 48px)", fontWeight: 900, color: "#fff", letterSpacing: 4, animation: "glow-text 2.5s ease-in-out infinite", textTransform: "uppercase" }}>Alifallx</h1>
+                <h1 style={{ margin: 0, fontSize: "clamp(28px, 6vw, 48px)", fontWeight: 900, color: "#fff", letterSpacing: 4, animation: "glow-text 2.5s ease-in-out infinite", textTransform: "uppercase" }}>AlifallX</h1>
                 <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginTop: 8, letterSpacing: 2 }}>Catch the falling aliens. Dodge the rocks.</div>
               </div>
               <button className="play-btn" onClick={() => { window.scrollTo({ top: 0, behavior: "instant" }); setGameStarted(true); }} style={{ background: "none", border: "none", cursor: "pointer", position: "relative", padding: 0 }}>
@@ -1153,8 +1399,11 @@ export default function Game() {
                 </div>
               </button>
               <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", letterSpacing: 3, textTransform: "uppercase" }}>Click to play</div>
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", letterSpacing: 1, textAlign: "center", lineHeight: 1.7 }}>
-                ← → to move &nbsp;·&nbsp; SPACE to shoot<br/>Catch aliens for coins · Buy bullets in HUD
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", letterSpacing: 1, textAlign: "center", lineHeight: 2 }}>
+                <span style={{ color: "rgba(255,255,255,0.45)" }}>← → / A / D</span> move &nbsp;·&nbsp; <span style={{ color: "rgba(255,255,255,0.45)" }}>Space</span> shoot &nbsp;·&nbsp; <span style={{ color: "rgba(255,255,255,0.45)" }}>S</span> shield &nbsp;·&nbsp; <span style={{ color: "rgba(255,255,255,0.45)" }}>P / Esc</span> pause<br/>
+                <span style={{ color: "rgba(255,255,255,0.45)" }}>1</span> buy bullets 🪙30 &nbsp;·&nbsp; <span style={{ color: "rgba(255,255,255,0.45)" }}>2</span> buy shield 🪙50 &nbsp;·&nbsp; <span style={{ color: "rgba(255,255,255,0.45)" }}>3</span> buy life 🪙150<br/>
+                ❤️ catch Heart Alien (+1 life, lv4+) &nbsp;·&nbsp; 🛡️ Shield Alien (+1 shield, lv3+) &nbsp;·&nbsp; 💣 avoid Bomb Alien (−1 life, lv7+)<br/>
+                or click the HUD buttons directly
               </div>
             </div>
           )}

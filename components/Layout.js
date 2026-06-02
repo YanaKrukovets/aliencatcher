@@ -26,7 +26,7 @@ export default function Layout({ children }) {
 
         <meta property="og:url" content="http://www.aliencatcher.com/" />
         <meta property="og:type" content="website" />
-        <meta property="og:title" content="Yana Krukovets Alifallx: Don't Leave Them Behind" />
+        <meta property="og:title" content="Yana Krukovets AlifallX: Don't Leave Them Behind" />
         <meta
           property="og:description"
           content="Yana Krukovets. Front-end web developer. HTML, CSS, JavaScript, ReactJS, Next.js, Tailwind.css, jQuery,
@@ -64,8 +64,8 @@ export default function Layout({ children }) {
           href="https://www.aliencatcher.com/apple-touch-icon.png"
         />
 
-        <link rel="icon" href="/favicon.ico" />
-        <link rel="icon" href="https://www.aliencatcher.com/favicon.ico" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
       </Head>
       <header className="max-w-inner">
         <Navbar />
