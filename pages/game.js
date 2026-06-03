@@ -240,7 +240,7 @@ export default function Game() {
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
     const isTouchDevice = typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0);
-    const shipBottomMargin = isTouchDevice ? 200 : 100;
+    const shipBottomMargin = isTouchDevice ? 160 : 100;
 
     const handleResize = () => {
       canvas.width = canvas.offsetWidth;
@@ -327,8 +327,11 @@ export default function Game() {
     // ---- SOUNDS ----
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     audioCtxRef.current = audioCtx;
-    // Mobile browsers suspend AudioContext until a user gesture — resume on first interaction
-    const resumeAudio = () => { if (audioCtx.state === "suspended") audioCtx.resume(); };
+    // Mobile browsers suspend AudioContext until a user gesture — resume on first interaction.
+    // Start music only after resume so stale oscillators don't pile up during suspension.
+    const resumeAudio = () => {
+      if (audioCtx.state === "suspended") audioCtx.resume().then(() => bgMusic.start());
+    };
     document.addEventListener("touchstart", resumeAudio, { once: true });
     document.addEventListener("click", resumeAudio, { once: true });
 
@@ -345,7 +348,7 @@ export default function Game() {
       () => winMusicActive,
     );
     bgGainRef.current = bgMusic.bgGain;
-    bgMusic.start();
+    if (audioCtx.state !== "suspended") bgMusic.start();
 
     // ---- SPEED / INTERVAL HELPERS ----
     const getRockInterval = () => Math.max(55, 200 - (levelVal - 1) * 20);
@@ -360,8 +363,8 @@ export default function Game() {
     ];
 
     // ---- SHIP ----
-    const shipW = isTouchDevice ? 50 : 70;
-    const shipH = isTouchDevice ? 36 : 50;
+    const shipW = isTouchDevice ? 62 : 70;
+    const shipH = isTouchDevice ? 45 : 50;
     const ship = {
       x: canvas.width / 2 - shipW / 2,
       y: canvas.height - shipBottomMargin,
@@ -1331,7 +1334,7 @@ export default function Game() {
     width: 64, height: 64, borderRadius: "50%",
     background: "rgba(255,255,255,0.08)", border: "2px solid rgba(255,255,255,0.2)",
     color: "#fff", fontSize: 26, display: "flex", alignItems: "center", justifyContent: "center",
-    cursor: "pointer", userSelect: "none", touchAction: "none",
+    cursor: "pointer", userSelect: "none", WebkitUserSelect: "none", touchAction: "none",
     WebkitTapHighlightColor: "transparent", WebkitTouchCallout: "none", outline: "none",
   };
 
@@ -1342,6 +1345,7 @@ export default function Game() {
         <meta name="description" content="Catch the falling AlifallX with your spaceship. Don't leave them behind!" />
       </Head>
       <style>{`
+        * { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
         @keyframes pulse-ring {
           0% { transform: scale(1); opacity: 0.6; }
           100% { transform: scale(1.7); opacity: 0; }
