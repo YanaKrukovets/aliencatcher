@@ -189,6 +189,7 @@ export default function Game() {
   const bgGainRef = useRef(null);
   const touchControlsRef = useRef({});
   const touchFireIntervalRef = useRef(null);
+  const isTouchDevice = typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0);
 
   useEffect(() => {
     if (gameStarted && !isGameOver) {
@@ -238,11 +239,13 @@ export default function Game() {
 
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
+    const isTouchDevice = typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0);
+    const shipBottomMargin = isTouchDevice ? 260 : 100;
 
     const handleResize = () => {
       canvas.width = canvas.offsetWidth;
       canvas.height = canvas.offsetHeight;
-      ship.y = canvas.height - 100;
+      ship.y = canvas.height - shipBottomMargin;
       distantPlanets[1].x = canvas.width - 110;
       distantPlanets[2].x = canvas.width / 2 + 60;
       distantPlanets[2].y = canvas.height - 130;
@@ -355,7 +358,7 @@ export default function Game() {
     // ---- SHIP ----
     const ship = {
       x: canvas.width / 2 - 35,
-      y: canvas.height - 100,
+      y: canvas.height - shipBottomMargin,
       width: 70,
       height: 50,
       speed: 6,
@@ -1110,24 +1113,20 @@ export default function Game() {
       coinParticles = coinParticles.filter((c) => { c.x += c.vx; c.y += c.vy; c.alpha -= 0.007; c.spin += c.spinSpeed; return c.alpha > 0 && c.y < canvas.height + 10; });
     }
 
-    function gameLoop() {
+    // Fixed-timestep game loop: physics runs at steady 60 steps/sec regardless of display fps
+    const STEP = 1000 / 60;
+    let lastTimestamp = 0;
+    let accumulator = 0;
+
+    function gameLoop(timestamp) {
       if (!gameRunning) return;
 
-      if (readyFrames > 0) {
-        readyFrames--;
-        const n = Math.ceil(readyFrames / 60);
-        if (n !== lastCountdownShown) { lastCountdownShown = n; setCountdown(n); }
-        drawFrame();
-        animFrameId = requestAnimationFrame(gameLoop);
-        return;
-      }
-      if (lastCountdownShown !== -1) {
-        lastCountdownShown = -1;
-        setCountdown(0);
-        setTimeout(() => setCountdown(null), 700);
-      }
+      if (lastTimestamp === 0) lastTimestamp = timestamp;
+      const elapsed = Math.min(timestamp - lastTimestamp, 100); // cap to avoid spiral after tab switch
+      lastTimestamp = timestamp;
+      accumulator += elapsed;
 
-      // Process buys — runs whether paused or not
+      // Process buys — once per rAF, event-driven
       if (buyBulletsRef.current) {
         buyBulletsRef.current = false;
         if (coinsVal >= BULLET_BUY_COST) {
@@ -1198,7 +1197,23 @@ export default function Game() {
         return;
       }
 
-      updateGame();
+      // Fixed-step physics: catch up if frames were slow, no-op if display is faster than 60fps
+      while (accumulator >= STEP) {
+        if (readyFrames > 0) {
+          readyFrames--;
+          const n = Math.ceil(readyFrames / 60);
+          if (n !== lastCountdownShown) { lastCountdownShown = n; setCountdown(n); }
+        } else {
+          if (lastCountdownShown !== -1) {
+            lastCountdownShown = -1;
+            setCountdown(0);
+            setTimeout(() => setCountdown(null), 700);
+          }
+          updateGame();
+        }
+        accumulator -= STEP;
+      }
+
       drawFrame();
 
       if (buyFlashFrames > 0) {
@@ -1280,6 +1295,8 @@ export default function Game() {
 
     const onWheel = (e) => e.preventDefault();
     window.addEventListener("wheel", onWheel, { passive: false });
+    const onContextMenu = (e) => e.preventDefault();
+    window.addEventListener("contextmenu", onContextMenu);
     document.body.style.overflow = "hidden";
 
     animFrameId = requestAnimationFrame(gameLoop);
@@ -1294,6 +1311,7 @@ export default function Game() {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("contextmenu", onContextMenu);
       document.body.style.overflow = "";
       bgMusic.stop();
       audioCtx.close();
@@ -1403,7 +1421,7 @@ export default function Game() {
 
       <div style={{
         display: "flex", flexDirection: "column",
-        height: "100vh", paddingTop: gameStarted && !isGameOver ? 0 : NAV_HEIGHT,
+        height: "100dvh", paddingTop: gameStarted && !isGameOver ? 0 : NAV_HEIGHT,
         boxSizing: "border-box", overflow: "hidden",
         alignItems: "center", background: "#05071a",
         position: "relative",
@@ -1520,20 +1538,16 @@ export default function Game() {
           <canvas ref={canvasRef} style={{ display: "block", width: "100%", height: "100%" }} />
 
           {/* Touch Controls Overlay */}
-          {gameStarted && !isGameOver && !isMissionComplete && countdown === null && (
-            <div style={{ position: "absolute", bottom: 20, left: 0, right: 0, display: "flex", justifyContent: "space-between", alignItems: "flex-end", padding: "0 20px", pointerEvents: "none", zIndex: 10 }}>
-              <div style={{ display: "flex", gap: 12, pointerEvents: "auto" }}>
-                {[["←", "moveLeft"], ["→", "moveRight"]].map(([label, action]) => (
-                  <button key={label}
-                    onPointerDown={(e) => { e.preventDefault(); touchControlsRef.current[action]?.(true); }}
-                    onPointerUp={(e) => { e.preventDefault(); touchControlsRef.current[action]?.(false); }}
-                    onPointerLeave={(e) => { e.preventDefault(); touchControlsRef.current[action]?.(false); }}
-                    onPointerCancel={(e) => { e.preventDefault(); touchControlsRef.current[action]?.(false); }}
-                    style={touchBtnStyle}
-                  >{label}</button>
-                ))}
-              </div>
-              <div style={{ display: "flex", gap: 12, pointerEvents: "auto" }}>
+          {isTouchDevice && gameStarted && !isGameOver && !isMissionComplete && countdown === null && (
+            <div style={{ position: "absolute", bottom: "calc(20px + env(safe-area-inset-bottom, 0px))", left: 0, right: 0, display: "flex", justifyContent: "space-between", alignItems: "flex-end", padding: "0 20px", pointerEvents: "none", zIndex: 10 }}>
+              <button
+                onPointerDown={(e) => { e.preventDefault(); touchControlsRef.current.moveLeft?.(true); }}
+                onPointerUp={(e) => { e.preventDefault(); touchControlsRef.current.moveLeft?.(false); }}
+                onPointerLeave={(e) => { e.preventDefault(); touchControlsRef.current.moveLeft?.(false); }}
+                onPointerCancel={(e) => { e.preventDefault(); touchControlsRef.current.moveLeft?.(false); }}
+                style={{ ...touchBtnStyle, pointerEvents: "auto" }}
+              >←</button>
+              <div style={{ display: "flex", gap: 16, pointerEvents: "auto" }}>
                 <button
                   onPointerDown={(e) => { e.preventDefault(); touchControlsRef.current.shield?.(); }}
                   style={{ ...touchBtnStyle, background: "rgba(68,204,255,0.15)", borderColor: "rgba(68,204,255,0.4)" }}
@@ -1544,8 +1558,15 @@ export default function Game() {
                   onPointerLeave={(e) => { e.preventDefault(); clearInterval(touchFireIntervalRef.current); }}
                   onPointerCancel={(e) => { e.preventDefault(); clearInterval(touchFireIntervalRef.current); }}
                   style={{ ...touchBtnStyle, background: "rgba(255,100,100,0.15)", borderColor: "rgba(255,100,100,0.4)" }}
-                >🔥</button>
+                >🔫</button>
               </div>
+              <button
+                onPointerDown={(e) => { e.preventDefault(); touchControlsRef.current.moveRight?.(true); }}
+                onPointerUp={(e) => { e.preventDefault(); touchControlsRef.current.moveRight?.(false); }}
+                onPointerLeave={(e) => { e.preventDefault(); touchControlsRef.current.moveRight?.(false); }}
+                onPointerCancel={(e) => { e.preventDefault(); touchControlsRef.current.moveRight?.(false); }}
+                style={{ ...touchBtnStyle, pointerEvents: "auto" }}
+              >→</button>
             </div>
           )}
 
@@ -1579,7 +1600,7 @@ export default function Game() {
                 ❤️ catch Heart Alien (+1 life, lv4+) &nbsp;·&nbsp; 🛡️ Shield Alien (+1 shield, lv3+) &nbsp;·&nbsp; 💣 avoid Bomb Alien (−1 life, lv7+)
               </div>
               <div className="controls-touch" style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", letterSpacing: 1, textAlign: "center", lineHeight: 2 }}>
-                <span style={{ color: "rgba(255,255,255,0.45)" }}>← →</span> buttons to move &nbsp;·&nbsp; <span style={{ color: "rgba(255,255,255,0.45)" }}>🔥 hold</span> to fire &nbsp;·&nbsp; <span style={{ color: "rgba(255,255,255,0.45)" }}>🛡</span> to shield<br/>
+                <span style={{ color: "rgba(255,255,255,0.45)" }}>← →</span> buttons to move &nbsp;·&nbsp; <span style={{ color: "rgba(255,255,255,0.45)" }}>🔫 hold</span> to fire &nbsp;·&nbsp; <span style={{ color: "rgba(255,255,255,0.45)" }}>🛡</span> to shield<br/>
                 ❤️ catch Heart Alien (+1 life) &nbsp;·&nbsp; 🛡️ Shield Alien (+1 shield) &nbsp;·&nbsp; 💣 avoid Bomb Alien
               </div>
             </div>
