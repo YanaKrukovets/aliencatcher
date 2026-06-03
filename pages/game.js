@@ -228,6 +228,9 @@ export default function Game() {
     pausedRef.current = false;
     setIsPaused(false);
     setLevelUpBanner(null);
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    ctx.resume();
+    audioCtxRef.current = ctx;
     setRestartKey((k) => k + 1);
   };
 
@@ -325,16 +328,10 @@ export default function Game() {
     let winPending = false;
 
     // ---- SOUNDS ----
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // AudioContext was created and resumed synchronously in the button's onClick handler
+    // (the only way to unlock audio on iOS without requiring a second tap).
+    const audioCtx = audioCtxRef.current || new (window.AudioContext || window.webkitAudioContext)();
     audioCtxRef.current = audioCtx;
-    // Mobile browsers suspend AudioContext until a user gesture — resume on first interaction.
-    // Start music only after resume so stale oscillators don't pile up during suspension.
-    const resumeAudio = () => {
-      if (audioCtx.state === "suspended") audioCtx.resume().then(() => bgMusic.start());
-    };
-    document.addEventListener("touchstart", resumeAudio, { once: true });
-    document.addEventListener("pointerdown", resumeAudio, { once: true });
-    document.addEventListener("click", resumeAudio, { once: true });
 
     const {
       playShoot, playCatch, playHit, playExplosion,
@@ -349,7 +346,7 @@ export default function Game() {
       () => winMusicActive,
     );
     bgGainRef.current = bgMusic.bgGain;
-    if (audioCtx.state !== "suspended") bgMusic.start();
+    audioCtx.resume().then(() => bgMusic.start());
 
     // ---- SPEED / INTERVAL HELPERS ----
     const getRockInterval = () => Math.max(55, 200 - (levelVal - 1) * 20);
@@ -1323,9 +1320,6 @@ export default function Game() {
       window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("wheel", onWheel);
       window.removeEventListener("contextmenu", onContextMenu);
-      document.removeEventListener("touchstart", resumeAudio);
-      document.removeEventListener("pointerdown", resumeAudio);
-      document.removeEventListener("click", resumeAudio);
       document.body.style.overflow = "";
       bgMusic.stop();
       audioCtx.close();
@@ -1603,7 +1597,7 @@ export default function Game() {
 
           {/* Start Screen */}
           {!gameStarted && !isGameOver && (
-            <div style={{ position: "absolute", inset: 0, zIndex: 20, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "linear-gradient(180deg, #070b1f 0%, #12173a 50%, #1a0a2e 100%)", fontFamily: "'Arial', sans-serif", gap: 32 }}>
+            <div style={{ position: "absolute", inset: 0, zIndex: 20, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "linear-gradient(180deg, #070b1f 0%, #12173a 50%, #1a0a2e 100%)", fontFamily: "'Arial', sans-serif", gap: 32, padding: "0 24px" }}>
               <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
                 {Array.from({ length: 40 }).map((_, i) => (
                   <div key={i} style={{ position: "absolute", left: `${Math.sin(i * 2.5) * 50 + 50}%`, top: `${Math.cos(i * 1.7) * 50 + 50}%`, width: i % 5 === 0 ? 3 : 2, height: i % 5 === 0 ? 3 : 2, borderRadius: "50%", background: "#fff", opacity: 0.3 + (i % 4) * 0.15 }} />
@@ -1614,7 +1608,7 @@ export default function Game() {
                 <h1 style={{ margin: 0, fontSize: "clamp(28px, 6vw, 48px)", fontWeight: 900, color: "#fff", letterSpacing: 4, animation: "glow-text 2.5s ease-in-out infinite", textTransform: "uppercase" }}>AlifallX</h1>
                 <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginTop: 8, letterSpacing: 2 }}>Catch the falling aliens. Dodge the rocks.</div>
               </div>
-              <button className="play-btn" onClick={() => { window.scrollTo({ top: 0, behavior: "instant" }); setGameStarted(true); }} style={{ background: "none", border: "none", cursor: "pointer", position: "relative", padding: 0 }}>
+              <button className="play-btn" onClick={() => { window.scrollTo({ top: 0, behavior: "instant" }); const ctx = new (window.AudioContext || window.webkitAudioContext)(); ctx.resume(); audioCtxRef.current = ctx; setGameStarted(true); }} style={{ background: "none", border: "none", cursor: "pointer", position: "relative", padding: 0 }}>
                 <div style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "2px solid rgba(100,200,255,0.6)", animation: "pulse-ring 1.8s ease-out infinite" }} />
                 <div style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "2px solid rgba(100,200,255,0.4)", animation: "pulse-ring2 1.8s ease-out infinite 0.4s" }} />
                 <div style={{ position: "absolute", inset: -4, borderRadius: "50%", background: "conic-gradient(from 0deg, rgba(100,200,255,0.8), rgba(180,100,255,0.8), rgba(100,200,255,0), rgba(100,200,255,0.8))", animation: "spin-border 2s linear infinite" }} />
