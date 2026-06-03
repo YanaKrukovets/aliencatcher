@@ -3,7 +3,7 @@
 ## Project Overview
 Space arcade game built with **Next.js 13 + Tailwind CSS**. Players control a spaceship on an HTML5 canvas, dodge rocks, and catch/destroy aliens. The site also has a landing page with About, Contact, and game info sections.
 
-Completed features: multiple levels with dynamic difficulty scaling (speed, spawn rates, color palettes per level), level-up banner/animation, countdown timer at game start, coin economy (earn/buy bullets/shields/lives), meteor storm hazard with safe zones, UFO with tractor beam, gravity well, scramble control-flip, boss rocks, HeartAlien (+1 life), ShieldAlien (+1 shield), ReverseAlien (shoot for coins), The Last Egg win condition.
+Completed features: multiple levels with dynamic difficulty scaling (speed, spawn rates, color palettes per level), level-up banner/animation, countdown timer at game start, coin economy (earn/buy bullets/shields/lives), meteor storm hazard with safe zones, UFO with tractor beam, gravity well, scramble control-flip, boss rocks, HeartAlien (+1 life), ShieldAlien (+1 shield), ReverseAlien (shoot for coins), The Last Egg win condition, full mobile support (touch controls, fixed-timestep loop, responsive ship/rock sizing).
 
 Planned future features: multiplayer (2+ players on same device or online), power-ups and upgrades, leaderboard.
 
@@ -44,6 +44,8 @@ Planned future features: multiplayer (2+ players on same device or online), powe
 - Multi-alien spawns activate at level 2+ via `multiChance`; speed variance adds at level 5+; boss rocks at level 10+.
 - Special entities: UFO (level 20+, 15 HP, abducts aliens), ReverseAlien (level 17+, rises from bottom), HeartAlien/ShieldAlien (bonus drops on rocks), GravityWell (level 35+), Scramble (level 37+), LastEgg (level 50, win condition).
 - Controls: `← →` / `A` / `D` move; `Space` shoot; `S` activate shield; `1` buy 30 bullets (🪙100); `2` buy shield (🪙70); `3` buy life (🪙200).
+- Mobile controls: on-screen touch buttons (← →, 🔫, 🛡) rendered as React overlay over canvas, visible only on touch devices (`isTouchDevice` flag at component level). Fire button auto-fires on hold via `setInterval`. Actions bridged into the game loop via `touchControlsRef`.
+- Mobile layout: `100dvh` container, `viewport-fit=cover`, `env(safe-area-inset-bottom)` for iPhone home bar. Ship and rocks are scaled down on touch devices (`shipW/H` and `rockScale = 0.6`). Fixed-timestep game loop (`STEP = 1000/60`, accumulator pattern) ensures consistent speed regardless of display fps.
 - Multiplayer (future) will need to extract ship logic into a reusable factory and manage multiple input sources (keyboard zones or WebSocket).
 - `alien-rescue-game.html` (standalone prototype) is no longer in the repo — reference only in git history.
 

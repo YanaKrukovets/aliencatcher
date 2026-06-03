@@ -240,7 +240,7 @@ export default function Game() {
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
     const isTouchDevice = typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0);
-    const shipBottomMargin = isTouchDevice ? 260 : 100;
+    const shipBottomMargin = isTouchDevice ? 200 : 100;
 
     const handleResize = () => {
       canvas.width = canvas.offsetWidth;
@@ -356,11 +356,13 @@ export default function Game() {
     ];
 
     // ---- SHIP ----
+    const shipW = isTouchDevice ? 50 : 70;
+    const shipH = isTouchDevice ? 36 : 50;
     const ship = {
-      x: canvas.width / 2 - 35,
+      x: canvas.width / 2 - shipW / 2,
       y: canvas.height - shipBottomMargin,
-      width: 70,
-      height: 50,
+      width: shipW,
+      height: shipH,
       speed: 6,
       flash: false,
       engineGlow: 0,
@@ -427,6 +429,7 @@ export default function Game() {
       getRockSpeed,
       getAlienSpeed,
       rockImages,
+      isTouchDevice,
     });
 
     // ---- FIREWORK HELPERS (use FireworkParticle + canvas) ----
@@ -1323,7 +1326,7 @@ export default function Game() {
     background: "rgba(255,255,255,0.08)", border: "2px solid rgba(255,255,255,0.2)",
     color: "#fff", fontSize: 26, display: "flex", alignItems: "center", justifyContent: "center",
     cursor: "pointer", userSelect: "none", touchAction: "none",
-    WebkitTapHighlightColor: "transparent", outline: "none",
+    WebkitTapHighlightColor: "transparent", WebkitTouchCallout: "none", outline: "none",
   };
 
   return (
@@ -1545,11 +1548,13 @@ export default function Game() {
                 onPointerUp={(e) => { e.preventDefault(); touchControlsRef.current.moveLeft?.(false); }}
                 onPointerLeave={(e) => { e.preventDefault(); touchControlsRef.current.moveLeft?.(false); }}
                 onPointerCancel={(e) => { e.preventDefault(); touchControlsRef.current.moveLeft?.(false); }}
+                onContextMenu={(e) => e.preventDefault()}
                 style={{ ...touchBtnStyle, pointerEvents: "auto" }}
               >←</button>
               <div style={{ display: "flex", gap: 16, pointerEvents: "auto" }}>
                 <button
                   onPointerDown={(e) => { e.preventDefault(); touchControlsRef.current.shield?.(); }}
+                  onContextMenu={(e) => e.preventDefault()}
                   style={{ ...touchBtnStyle, background: "rgba(68,204,255,0.15)", borderColor: "rgba(68,204,255,0.4)" }}
                 >🛡</button>
                 <button
@@ -1557,6 +1562,7 @@ export default function Game() {
                   onPointerUp={(e) => { e.preventDefault(); clearInterval(touchFireIntervalRef.current); }}
                   onPointerLeave={(e) => { e.preventDefault(); clearInterval(touchFireIntervalRef.current); }}
                   onPointerCancel={(e) => { e.preventDefault(); clearInterval(touchFireIntervalRef.current); }}
+                  onContextMenu={(e) => e.preventDefault()}
                   style={{ ...touchBtnStyle, background: "rgba(255,100,100,0.15)", borderColor: "rgba(255,100,100,0.4)" }}
                 >🔫</button>
               </div>
@@ -1565,6 +1571,7 @@ export default function Game() {
                 onPointerUp={(e) => { e.preventDefault(); touchControlsRef.current.moveRight?.(false); }}
                 onPointerLeave={(e) => { e.preventDefault(); touchControlsRef.current.moveRight?.(false); }}
                 onPointerCancel={(e) => { e.preventDefault(); touchControlsRef.current.moveRight?.(false); }}
+                onContextMenu={(e) => e.preventDefault()}
                 style={{ ...touchBtnStyle, pointerEvents: "auto" }}
               >→</button>
             </div>

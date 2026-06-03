@@ -22,7 +22,7 @@ const AboutGame = () => {
           </p>
 
           <h3 className="py-[10px] text-[20px] mt-[10px]" style={{ color: "#1e6bb8" }}>
-            <b>How to Play:</b>
+            <b>How to Play — Keyboard:</b>
           </h3>
           <ul className="list-disc list-inside pl-[15px]">
             <li><b>← → / A / D</b> — move your ship left and right</li>
@@ -34,6 +34,20 @@ const AboutGame = () => {
             <li><b>3</b> — buy 1 extra life for 🪙200</li>
             <li>Catch falling aliens with your ship to earn points and coins</li>
             <li>You start with 3 lives and 2 shields — lose all lives and it&apos;s game over</li>
+          </ul>
+
+          <h3 className="py-[10px] text-[20px] mt-[10px]" style={{ color: "#1e6bb8" }}>
+            <b>How to Play — Mobile:</b>
+          </h3>
+          <p className="mt-[4px] mb-[8px]">
+            The game is fully playable on phones — on-screen touch buttons appear automatically when you start playing.
+          </p>
+          <ul className="list-disc list-inside pl-[15px]">
+            <li><b>← (left button)</b> — hold to move your ship left</li>
+            <li><b>→ (right button)</b> — hold to move your ship right</li>
+            <li><b>🔫 (fire button)</b> — tap and hold to auto-fire continuously</li>
+            <li><b>🛡 (shield button)</b> — tap to activate your meteor shield</li>
+            <li>Buying bullets, shields, and lives is not available on mobile — earn coins by catching and shooting aliens</li>
           </ul>
 
           <h3 className="py-[10px] text-[20px] mt-[10px]" style={{ color: "#1e6bb8" }}>
