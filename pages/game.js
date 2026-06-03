@@ -327,6 +327,10 @@ export default function Game() {
     // ---- SOUNDS ----
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     audioCtxRef.current = audioCtx;
+    // Mobile browsers suspend AudioContext until a user gesture — resume on first interaction
+    const resumeAudio = () => { if (audioCtx.state === "suspended") audioCtx.resume(); };
+    document.addEventListener("touchstart", resumeAudio, { once: true });
+    document.addEventListener("click", resumeAudio, { once: true });
 
     const {
       playShoot, playCatch, playHit, playExplosion,
@@ -1315,6 +1319,8 @@ export default function Game() {
       window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("wheel", onWheel);
       window.removeEventListener("contextmenu", onContextMenu);
+      document.removeEventListener("touchstart", resumeAudio);
+      document.removeEventListener("click", resumeAudio);
       document.body.style.overflow = "";
       bgMusic.stop();
       audioCtx.close();
