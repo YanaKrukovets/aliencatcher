@@ -37,6 +37,7 @@ function BuyButton({ onClick, disabled, label, cost }) {
       onClick={onClick}
       onKeyDown={(e) => e.preventDefault()}
       tabIndex={-1}
+      className="hud-buy"
       title={`${label} — costs 🪙${cost}`}
       style={{
         background: disabled ? "transparent" : "rgba(255,255,255,0.08)",
@@ -186,6 +187,8 @@ export default function Game() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const audioCtxRef = useRef(null);
   const bgGainRef = useRef(null);
+  const touchControlsRef = useRef({});
+  const touchFireIntervalRef = useRef(null);
 
   useEffect(() => {
     if (gameStarted && !isGameOver) {
@@ -1256,31 +1259,24 @@ export default function Game() {
         shootCooldown = 12;
       }
     };
-
-    const onTouchStart = (e) => {
-      e.preventDefault();
-      const rect = canvas.getBoundingClientRect();
-      const relX = e.touches[0].clientX - rect.left;
-      const relY = e.touches[0].clientY - rect.top;
-      if (relX > rect.width * 0.33 && relX < rect.width * 0.67 && relY > rect.height * 0.75) {
-        fireBullet();
-      } else if (relX < rect.width / 2) {
-        keys["ArrowLeft"] = true; keys["ArrowRight"] = false;
-      } else {
-        keys["ArrowRight"] = true; keys["ArrowLeft"] = false;
+    const activateShield = () => {
+      if (gameRunning && readyFrames <= 0 && !shieldActive && meteorShieldsVal > 0) {
+        meteorShieldsVal--;
+        setShields(meteorShieldsVal);
+        shieldActive = true;
+        shieldFrames = 300;
+        floatingTexts.push({ x: ship.x + ship.width / 2, y: ship.y - 30, text: "🛡️ Shield!", alpha: 1, vy: 1.5, color: "#44CCFF" });
       }
     };
-    const onTouchEnd = (e) => {
-      e.preventDefault();
-      keys["ArrowLeft"] = false; keys["ArrowRight"] = false;
+    touchControlsRef.current = {
+      moveLeft:  (on) => { keys["ArrowLeft"] = on; if (on) keys["ArrowRight"] = false; },
+      moveRight: (on) => { keys["ArrowRight"] = on; if (on) keys["ArrowLeft"] = false; },
+      fire: fireBullet,
+      shield: activateShield,
     };
 
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
-    canvas.addEventListener("touchstart", onTouchStart, { passive: false });
-    canvas.addEventListener("touchend", onTouchEnd, { passive: false });
-    const onTouchMove = (e) => e.preventDefault();
-    canvas.addEventListener("touchmove", onTouchMove, { passive: false });
 
     const onWheel = (e) => e.preventDefault();
     window.addEventListener("wheel", onWheel, { passive: false });
@@ -1298,14 +1294,19 @@ export default function Game() {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("wheel", onWheel);
-      canvas.removeEventListener("touchstart", onTouchStart);
-      canvas.removeEventListener("touchend", onTouchEnd);
-      canvas.removeEventListener("touchmove", onTouchMove);
       document.body.style.overflow = "";
       bgMusic.stop();
       audioCtx.close();
     };
   }, [restartKey, gameStarted]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const touchBtnStyle = {
+    width: 64, height: 64, borderRadius: "50%",
+    background: "rgba(255,255,255,0.08)", border: "2px solid rgba(255,255,255,0.2)",
+    color: "#fff", fontSize: 26, display: "flex", alignItems: "center", justifyContent: "center",
+    cursor: "pointer", userSelect: "none", touchAction: "none",
+    WebkitTapHighlightColor: "transparent", outline: "none",
+  };
 
   return (
     <>
@@ -1380,6 +1381,24 @@ export default function Game() {
           0%, 100% { box-shadow: 0 0 0px rgba(255,160,0,0); border-color: rgba(180,100,255,0.3); }
           50%       { box-shadow: 0 0 12px rgba(255,160,0,0.85); border-color: rgba(255,160,0,0.9); }
         }
+        .hud-buy { display: inline-flex; }
+        .controls-touch { display: none; }
+        .start-cta-tap { display: none; }
+        @media (max-width: 500px) {
+          .hud-buy { display: none !important; }
+          .hud-sep { display: none !important; }
+          .hud-lvl-label { display: none !important; }
+          .hud-right { gap: 4px !important; padding: 0 !important; }
+          .hud-bar { padding: 0 6px !important; }
+          .hud-score { font-size: 18px !important; }
+          .hud-level { font-size: 16px !important; }
+          .hud-coin-val { font-size: 13px !important; }
+          .hud-ammo-val { font-size: 13px !important; }
+          .controls-keyboard { display: none; }
+          .controls-touch { display: block; }
+          .start-cta-click { display: none; }
+          .start-cta-tap { display: block; }
+        }
       `}</style>
 
       <div style={{
@@ -1397,7 +1416,7 @@ export default function Game() {
         position: "relative", zIndex: 1,
       }}>
         {/* HUD Bar */}
-        <div style={{
+        <div className="hud-bar" style={{
           height: HUD_HEIGHT,
           background: "rgba(5,7,26,0.97)",
           borderBottom: "1px solid rgba(100,200,255,0.12)",
@@ -1410,12 +1429,12 @@ export default function Game() {
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <AlienIcon />
-              <span style={{ fontSize: 26, fontWeight: 900, color: "#fff", letterSpacing: 1, lineHeight: 1 }}>{score}</span>
+              <span className="hud-score" style={{ fontSize: 26, fontWeight: 900, color: "#fff", letterSpacing: 1, lineHeight: 1 }}>{score}</span>
             </div>
             <div style={{ width: 1, height: 22, background: "rgba(255,255,255,0.1)" }} />
             <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <span style={{ fontSize: 10, color: "rgba(255,215,0,0.5)", letterSpacing: 2, textTransform: "uppercase" }}>LVL</span>
-              <span style={{ fontSize: 20, fontWeight: 700, color: "#FFD700", lineHeight: 1 }}>{level}</span>
+              <span className="hud-lvl-label" style={{ fontSize: 10, color: "rgba(255,215,0,0.5)", letterSpacing: 2, textTransform: "uppercase" }}>LVL</span>
+              <span className="hud-level" style={{ fontSize: 20, fontWeight: 700, color: "#FFD700", lineHeight: 1 }}>{level}</span>
             </div>
           </div>
 
@@ -1437,30 +1456,30 @@ export default function Game() {
           </div>
 
           {/* Right: Coins, Bullets, Shields, Mute */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div className="hud-right" style={{ display: "flex", alignItems: "center", gap: 10 }}>
             {/* Coins */}
             <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
               <span style={{ fontSize: 14 }}>🪙</span>
-              <span style={{ fontSize: 17, fontWeight: 700, color: "#FFD700", lineHeight: 1 }}>{coins}</span>
+              <span className="hud-coin-val" style={{ fontSize: 17, fontWeight: 700, color: "#FFD700", lineHeight: 1 }}>{coins}</span>
             </div>
 
-            <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.1)" }} />
+            <div className="hud-sep" style={{ width: 1, height: 20, background: "rgba(255,255,255,0.1)" }} />
 
             {/* Bullets */}
             <div style={{ display: "flex", alignItems: "center", gap: 5, animation: bullets < 5 ? "hud-warn 0.9s ease-in-out infinite" : "none", borderRadius: 5, padding: "2px 4px" }}>
               <span style={{ fontSize: 14 }}>🔫</span>
-              <span style={{ fontSize: 17, fontWeight: 700, color: bullets === 0 ? "#ff4444" : bullets < 5 ? "#ffcc66" : "#fff", lineHeight: 1 }}>{bullets}</span>
+              <span className="hud-ammo-val" style={{ fontSize: 17, fontWeight: 700, color: bullets === 0 ? "#ff4444" : bullets < 5 ? "#ffcc66" : "#fff", lineHeight: 1 }}>{bullets}</span>
               <BuyButton onClick={() => { buyBulletsRef.current = true; }} disabled={coins < 100} label="+30 🪙100" cost={100} />
             </div>
 
             {/* Shields */}
             <div style={{ display: "flex", alignItems: "center", gap: 5, animation: shields === 0 ? "hud-warn 0.9s ease-in-out infinite" : "none", borderRadius: 5, padding: "2px 4px" }}>
               <span style={{ fontSize: 14 }}>🛡️</span>
-              <span style={{ fontSize: 17, fontWeight: 700, color: shields === 0 ? "#ff4444" : "#fff", lineHeight: 1 }}>{shields}</span>
+              <span className="hud-ammo-val" style={{ fontSize: 17, fontWeight: 700, color: shields === 0 ? "#ff4444" : "#fff", lineHeight: 1 }}>{shields}</span>
               <BuyButton onClick={() => { buyShieldsRef.current = true; }} disabled={coins < 70} label="+1 🪙70" cost={70} />
             </div>
 
-            <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.1)" }} />
+            <div className="hud-sep" style={{ width: 1, height: 20, background: "rgba(255,255,255,0.1)" }} />
 
             {/* Pause */}
             <button
@@ -1500,6 +1519,36 @@ export default function Game() {
         <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
           <canvas ref={canvasRef} style={{ display: "block", width: "100%", height: "100%" }} />
 
+          {/* Touch Controls Overlay */}
+          {gameStarted && !isGameOver && !isMissionComplete && countdown === null && (
+            <div style={{ position: "absolute", bottom: 20, left: 0, right: 0, display: "flex", justifyContent: "space-between", alignItems: "flex-end", padding: "0 20px", pointerEvents: "none", zIndex: 10 }}>
+              <div style={{ display: "flex", gap: 12, pointerEvents: "auto" }}>
+                {[["←", "moveLeft"], ["→", "moveRight"]].map(([label, action]) => (
+                  <button key={label}
+                    onPointerDown={(e) => { e.preventDefault(); touchControlsRef.current[action]?.(true); }}
+                    onPointerUp={(e) => { e.preventDefault(); touchControlsRef.current[action]?.(false); }}
+                    onPointerLeave={(e) => { e.preventDefault(); touchControlsRef.current[action]?.(false); }}
+                    onPointerCancel={(e) => { e.preventDefault(); touchControlsRef.current[action]?.(false); }}
+                    style={touchBtnStyle}
+                  >{label}</button>
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: 12, pointerEvents: "auto" }}>
+                <button
+                  onPointerDown={(e) => { e.preventDefault(); touchControlsRef.current.shield?.(); }}
+                  style={{ ...touchBtnStyle, background: "rgba(68,204,255,0.15)", borderColor: "rgba(68,204,255,0.4)" }}
+                >🛡</button>
+                <button
+                  onPointerDown={(e) => { e.preventDefault(); touchFireIntervalRef.current = setInterval(() => touchControlsRef.current.fire?.(), 180); touchControlsRef.current.fire?.(); }}
+                  onPointerUp={(e) => { e.preventDefault(); clearInterval(touchFireIntervalRef.current); }}
+                  onPointerLeave={(e) => { e.preventDefault(); clearInterval(touchFireIntervalRef.current); }}
+                  onPointerCancel={(e) => { e.preventDefault(); clearInterval(touchFireIntervalRef.current); }}
+                  style={{ ...touchBtnStyle, background: "rgba(255,100,100,0.15)", borderColor: "rgba(255,100,100,0.4)" }}
+                >🔥</button>
+              </div>
+            </div>
+          )}
+
           {/* Start Screen */}
           {!gameStarted && !isGameOver && (
             <div style={{ position: "absolute", inset: 0, zIndex: 20, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "linear-gradient(180deg, #070b1f 0%, #12173a 50%, #1a0a2e 100%)", fontFamily: "'Arial', sans-serif", gap: 32 }}>
@@ -1522,12 +1571,16 @@ export default function Game() {
                   <div className="play-triangle" style={{ width: 0, height: 0, borderTop: "18px solid transparent", borderBottom: "18px solid transparent", borderLeft: "30px solid rgba(100,200,255,0.9)", marginLeft: 8 }} />
                 </div>
               </button>
-              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", letterSpacing: 3, textTransform: "uppercase" }}>Click to play</div>
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", letterSpacing: 1, textAlign: "center", lineHeight: 2 }}>
+              <div className="start-cta-click" style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", letterSpacing: 3, textTransform: "uppercase" }}>Click to play</div>
+              <div className="start-cta-tap" style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", letterSpacing: 3, textTransform: "uppercase" }}>Tap to play</div>
+              <div className="controls-keyboard" style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", letterSpacing: 1, textAlign: "center", lineHeight: 2 }}>
                 <span style={{ color: "rgba(255,255,255,0.45)" }}>← → / A / D</span> move &nbsp;·&nbsp; <span style={{ color: "rgba(255,255,255,0.45)" }}>Space</span> shoot &nbsp;·&nbsp; <span style={{ color: "rgba(255,255,255,0.45)" }}>S</span> shield &nbsp;·&nbsp; <span style={{ color: "rgba(255,255,255,0.45)" }}>P / Esc</span> pause<br/>
                 <span style={{ color: "rgba(255,255,255,0.45)" }}>1</span> buy bullets 🪙100 &nbsp;·&nbsp; <span style={{ color: "rgba(255,255,255,0.45)" }}>2</span> buy shield 🪙70 &nbsp;·&nbsp; <span style={{ color: "rgba(255,255,255,0.45)" }}>3</span> buy life 🪙200<br/>
-                ❤️ catch Heart Alien (+1 life, lv4+) &nbsp;·&nbsp; 🛡️ Shield Alien (+1 shield, lv3+) &nbsp;·&nbsp; 💣 avoid Bomb Alien (−1 life, lv7+)<br/>
-                or click the HUD buttons directly
+                ❤️ catch Heart Alien (+1 life, lv4+) &nbsp;·&nbsp; 🛡️ Shield Alien (+1 shield, lv3+) &nbsp;·&nbsp; 💣 avoid Bomb Alien (−1 life, lv7+)
+              </div>
+              <div className="controls-touch" style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", letterSpacing: 1, textAlign: "center", lineHeight: 2 }}>
+                <span style={{ color: "rgba(255,255,255,0.45)" }}>← →</span> buttons to move &nbsp;·&nbsp; <span style={{ color: "rgba(255,255,255,0.45)" }}>🔥 hold</span> to fire &nbsp;·&nbsp; <span style={{ color: "rgba(255,255,255,0.45)" }}>🛡</span> to shield<br/>
+                ❤️ catch Heart Alien (+1 life) &nbsp;·&nbsp; 🛡️ Shield Alien (+1 shield) &nbsp;·&nbsp; 💣 avoid Bomb Alien
               </div>
             </div>
           )}

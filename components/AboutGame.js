@@ -4,7 +4,7 @@ const AboutGame = () => {
   return (
     <section id="aboutgame" className="font-roboto py-[60px]" style={{ borderTop: "1px solid rgba(30,107,184,0.15)", color: "#1a1a2e" }}>
       <div>
-        <div className="max-w-wrapper px-5 mx-auto py-[20px] max-w-[65%] md:max-w-full">
+        <div className="max-w-wrapper px-5 mx-auto py-[20px] max-w-full md:max-w-[65%]">
           <h2 className="pb-[10px] text-[27px]" style={{ color: "#1e6bb8" }}>
             <b>AlifallX: Don&apos;t Leave Them Behind</b>
           </h2>
