@@ -34,7 +34,7 @@ const BackToTopButton = () => {
 
   return (
     isVisible && (
-      <button onClick={scrollToTop} className="back-to-top xxl:right-[20px]">
+      <button onClick={scrollToTop} className="back-to-top xxl:right-[20px]" aria-label="Back to top">
         <FontAwesomeIcon
           className="w-4 inline mt-[-1px]"
           icon={faAngleUp}

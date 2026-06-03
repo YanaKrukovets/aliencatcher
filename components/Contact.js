@@ -5,14 +5,14 @@ function ContactForm() {
 
   if (state.succeeded) {
     return (
-      <p className="succeed-form">
+      <p className="succeed-form" role="status" aria-live="polite" aria-atomic="true">
         Thanks for taking the time to reach out. I will contact with you soon
       </p>
     );
   }
 
   return (
-    <div id="contact" className="py-[40px] font-roboto" style={{ borderTop: "1px solid rgba(100,200,255,0.12)", color: "#e8f4ff" }}>
+    <section id="contact" className="py-[40px] font-roboto" style={{ borderTop: "1px solid rgba(100,200,255,0.12)", color: "#e8f4ff" }}>
       <div className="max-w-wrapper px-5 mx-auto  py-[20px] ">
         <form
           onSubmit={handleSubmit}
@@ -31,7 +31,7 @@ function ContactForm() {
             </label>
             <input
               id="name"
-              type="name"
+              type="text"
               className="form-control"
               name="name"
               aria-required="true"
@@ -71,7 +71,7 @@ function ContactForm() {
           </fieldset>
         </form>
       </div>
-    </div>
+    </section>
   );
 }
 

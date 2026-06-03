@@ -43,7 +43,7 @@ Planned future features: multiplayer (2+ players on same device or online), powe
 - Level progression: level 1 while score < 3, then `Math.floor((score - 3) / 5) + 2` — so L2 at 3 pts, new level every 5 pts after that. Each level increases alien/rock speed (`+0.2/level`), tightens spawn intervals (min 55ms at high levels), and cycles color palettes (`LEVEL_PALETTES`/`LEVEL_COLORS`).
 - Multi-alien spawns activate at level 2+ via `multiChance`; speed variance adds at level 5+; boss rocks at level 10+.
 - Special entities: UFO (level 20+, 15 HP, abducts aliens), ReverseAlien (level 17+, rises from bottom), HeartAlien/ShieldAlien (bonus drops on rocks), GravityWell (level 35+), Scramble (level 37+), LastEgg (level 50, win condition).
-- Controls: `← →` / `A` / `D` move; `Space` shoot; `S` activate shield; `1` buy bullets (🪙30); `2` buy shield (🪙50); `3` buy life (🪙150).
+- Controls: `← →` / `A` / `D` move; `Space` shoot; `S` activate shield; `1` buy 30 bullets (🪙100); `2` buy shield (🪙70); `3` buy life (🪙200).
 - Multiplayer (future) will need to extract ship logic into a reusable factory and manage multiple input sources (keyboard zones or WebSocket).
 - `alien-rescue-game.html` (standalone prototype) is no longer in the repo — reference only in git history.
 

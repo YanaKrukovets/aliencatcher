@@ -113,6 +113,7 @@ const HeaderBanner = () => {
     <div style={{ position: "relative", minHeight: "100vh", overflow: "hidden" }}>
       <canvas
         ref={canvasRef}
+        aria-hidden="true"
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block" }}
       />
 
@@ -170,7 +171,7 @@ const HeaderBanner = () => {
         gap: 36,
       }}>
         <div style={{ animation: "float-banner 3s ease-in-out infinite" }}>
-          <div style={{ fontSize: 13, letterSpacing: 6, color: "rgba(100,200,255,0.65)", marginBottom: 14, textTransform: "uppercase" }}>
+          <div style={{ fontSize: 13, letterSpacing: 6, color: "rgba(100,200,255,0.82)", marginBottom: 14, textTransform: "uppercase" }}>
             Welcome to
           </div>
           <div style={{
@@ -207,14 +208,14 @@ const HeaderBanner = () => {
           </Link>
         </div>
 
-        <a href="#aboutgame" style={{
+        <a href="#aboutgame" aria-label="Scroll down to game information" style={{
           position: "absolute", bottom: 36, left: "50%", transform: "translateX(-50%)",
           display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
           color: "rgba(100,200,255,0.5)", textDecoration: "none",
         }}>
           <div style={{
             width: 26, height: 42, borderRadius: 13,
-            border: "2px solid rgba(100,200,255,0.4)",
+            border: "2px solid rgba(100,200,255,0.6)",
             display: "flex", justifyContent: "center", alignItems: "flex-start",
             padding: "7px 0",
           }}>

@@ -10,8 +10,12 @@ export default function NavLangToggle() {
   return (
     <>
       <div className="nav-lang-toggle text-gray">
-        <Link href={asPath} locale={locale === "en" ? "fr" : "en"}>
-          <span>{locale === "en" ? "FR" : "EN"}</span>
+        <Link
+          href={asPath}
+          locale={locale === "en" ? "fr" : "en"}
+          aria-label={locale === "en" ? "Switch language to French" : "Switch language to English"}
+        >
+          <span aria-hidden="true">{locale === "en" ? "FR" : "EN"}</span>
         </Link>
       </div>
     </>

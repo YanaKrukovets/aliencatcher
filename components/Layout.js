@@ -20,6 +20,9 @@ export default function Layout({ children }) {
 
   return (
     <>
+      <a href="#content" className="skip-to-main-content-link">
+        Skip to main content
+      </a>
       <Head>
         <meta name="viewport" content="initial-scale=1.0, width=device-width" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
@@ -71,10 +74,6 @@ export default function Layout({ children }) {
         <Navbar />
       </header>
       <main className={`verflow-x-hidden w-full text-black`} id="main">
-        <a href="#main" className="skip-to-main-content-link">
-          Skip to main content
-        </a>
-
         <div id="content" className="max-w-inner xxxl:px-0">
           {children}
         </div>

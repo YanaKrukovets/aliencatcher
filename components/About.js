@@ -6,7 +6,7 @@ import { AiFillInstagram } from "react-icons/ai";
 
 const About = () => {
   return (
-    <div id="about" className="purple py-[40px]">
+    <section id="about" className="purple py-[40px]">
       <div className="about max-w-wrapper px-5 mx-auto font-roboto">
         <div className="flex justify-between gap-2 pt-[20px] md:pt-[0px] md:flex-col max-w-[1100px] mx-auto">
           <div className="my-auto">
@@ -44,7 +44,8 @@ const About = () => {
               <a
                 href="https://elitedigitalagency.com/"
                 className="underline"
-                target="_blanc"
+                target="_blank"
+                rel="noreferrer"
               >
                 <i>Elite Digital</i>
               </a>{" "}
@@ -55,7 +56,8 @@ const About = () => {
               <a
                 href="https://www.softserveinc.com"
                 className="underline"
-                target="_blanc"
+                target="_blank"
+                rel="noreferrer"
               >
                 <i>SoftServe</i>
               </a>{" "}
@@ -95,21 +97,23 @@ const About = () => {
           </a>
           <a
             href="https://www.instagram.com/aliencatcher2025/"
-            target="_blanc"
+            target="_blank"
+            rel="noreferrer"
             aria-label="Link to AlifallX instagram account"
           >
             <AiFillInstagram className="social-media" role="presentation" />
           </a>
           <a
             href="https://www.linkedin.com/in/yana-krukovets-25658260/"
-            target="_blanc"
+            target="_blank"
+            rel="noreferrer"
             aria-label="Link to Yana Krukovets linkedin account"
           >
             <AiFillLinkedin className="social-media" role="presentation" />
           </a>
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 

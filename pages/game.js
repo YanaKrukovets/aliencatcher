@@ -57,6 +57,109 @@ function BuyButton({ onClick, disabled, label, cost }) {
   );
 }
 
+const STAR_COLORS = ["#FFFFFF", "#C8E6FF", "#FFE8A0", "#E8C8FF", "#A0FFE8", "#FFB0B0"];
+
+function GameStarfield() {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+
+    let w = canvas.width = canvas.offsetWidth;
+    let h = canvas.height = canvas.offsetHeight;
+
+    const stars = [];
+    const shootingStars = [];
+    let shootingStarTimer = 0;
+
+    for (let i = 0; i < 160; i++) {
+      const layer = i < 80 ? 0 : i < 130 ? 1 : 2;
+      stars.push({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        size: layer === 0 ? Math.random() * 1 + 0.3 : layer === 1 ? Math.random() * 1.5 + 0.8 : Math.random() * 2.5 + 1.5,
+        speed: layer === 0 ? Math.random() * 0.15 + 0.05 : layer === 1 ? Math.random() * 0.3 + 0.15 : Math.random() * 0.6 + 0.3,
+        brightness: Math.random() * Math.PI * 2,
+        twinkleSpeed: Math.random() * 0.04 + 0.01,
+        color: STAR_COLORS[Math.floor(Math.random() * STAR_COLORS.length)],
+        bright: layer === 2 && Math.random() > 0.5,
+      });
+    }
+
+    const onResize = () => {
+      w = canvas.width = canvas.offsetWidth;
+      h = canvas.height = canvas.offsetHeight;
+    };
+    window.addEventListener("resize", onResize);
+
+    let raf;
+    function tick() {
+      ctx.clearRect(0, 0, w, h);
+
+      // falling stars
+      stars.forEach((star) => {
+        star.y += star.speed;
+        if (star.y > h) { star.y = 0; star.x = Math.random() * w; }
+        star.brightness += star.twinkleSpeed;
+        const b = (Math.sin(star.brightness) + 1) / 2;
+        const alpha = 0.3 + b * 0.7;
+        ctx.globalAlpha = alpha;
+        if (star.bright) {
+          const sg = ctx.createRadialGradient(star.x, star.y, 0, star.x, star.y, star.size * 3);
+          sg.addColorStop(0, star.color); sg.addColorStop(1, "rgba(255,255,255,0)");
+          ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(star.x, star.y, star.size * 3, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = star.color; ctx.lineWidth = 0.5 * alpha;
+          const arm = star.size * 5;
+          ctx.beginPath(); ctx.moveTo(star.x - arm, star.y); ctx.lineTo(star.x + arm, star.y); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(star.x, star.y - arm); ctx.lineTo(star.x, star.y + arm); ctx.stroke();
+        } else {
+          const sg = ctx.createRadialGradient(star.x, star.y, 0, star.x, star.y, star.size * 2.5);
+          sg.addColorStop(0, star.color); sg.addColorStop(1, "rgba(255,255,255,0)");
+          ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(star.x, star.y, star.size * 2.5, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.fillStyle = star.color;
+        ctx.beginPath(); ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+      });
+
+      // shooting stars
+      shootingStarTimer++;
+      if (shootingStarTimer > 180 + Math.random() * 300) {
+        shootingStarTimer = 0;
+        shootingStars.push({
+          x: Math.random() * w, y: Math.random() * h * 0.5,
+          vx: 4 + Math.random() * 4, vy: 2 + Math.random() * 2,
+          len: 60 + Math.random() * 80, life: 1,
+        });
+      }
+      for (let i = shootingStars.length - 1; i >= 0; i--) {
+        const s = shootingStars[i];
+        s.x += s.vx; s.y += s.vy; s.life -= 0.018;
+        if (s.life <= 0) { shootingStars.splice(i, 1); continue; }
+        const grad = ctx.createLinearGradient(s.x, s.y, s.x - s.vx * 10, s.y - s.vy * 10);
+        grad.addColorStop(0, `rgba(255,255,255,${s.life})`);
+        grad.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.strokeStyle = grad; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x - s.len * (s.vx / 6), s.y - s.len * (s.vy / 6)); ctx.stroke();
+      }
+
+      raf = requestAnimationFrame(tick);
+    }
+    tick();
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", onResize);
+    };
+  }, []);
+
+  return (
+    <canvas ref={canvasRef} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 0 }} />
+  );
+}
+
 export default function Game() {
   const canvasRef = useRef(null);
   const [score, setScore] = useState(0);
@@ -137,6 +240,9 @@ export default function Game() {
       canvas.width = canvas.offsetWidth;
       canvas.height = canvas.offsetHeight;
       ship.y = canvas.height - 100;
+      distantPlanets[1].x = canvas.width - 110;
+      distantPlanets[2].x = canvas.width / 2 + 60;
+      distantPlanets[2].y = canvas.height - 130;
     };
     window.addEventListener("resize", handleResize);
 
@@ -165,8 +271,8 @@ export default function Game() {
     let lastCountdownShown = 3;
     setCountdown(3);
 
-    const BULLET_BUY_COUNT = 5;
-    const BULLET_BUY_COST = 30;
+    const BULLET_BUY_COUNT = 30;
+    const BULLET_BUY_COST = 100;
     let pauseFrames = 0;
     let buyFlashFrames = 0;
     let buyFlashText = "";
@@ -183,6 +289,7 @@ export default function Game() {
     let meteorRocks = [];
     let meteorStormSafePos = 0; // cycles 0=left, 1=middle, 2=right
     let meteorHalfDamage = false;
+    let halfDamageTimeoutId = null;
     let shieldActive = false;
     let shieldFrames = 0;
     let shieldAngle = 0;
@@ -209,6 +316,7 @@ export default function Game() {
     let fireworkShells = [];
     let fireworkParticles = [];
     let winMusicActive = false;
+    let winPending = false;
 
     // ---- SOUNDS ----
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -230,12 +338,8 @@ export default function Game() {
     bgMusic.start();
 
     // ---- SPEED / INTERVAL HELPERS ----
-    const getRockInterval = () => {
-      if (levelVal <= 1) return 160;
-      if (levelVal <= 3) return 220;
-      return Math.max(55, 200 - (levelVal - 1) * 20);
-    };
-    const getAlienSpeed = () => 1 + (levelVal - 1) * 0.2;
+    const getRockInterval = () => Math.max(55, 200 - (levelVal - 1) * 20);
+    const getAlienSpeed = () => 1 + (Math.min(levelVal, 12) - 1) * 0.2;
     const getRockSpeed  = () => 1 + (levelVal - 1) * 0.2;
 
     // ---- BACKGROUND ELEMENTS ----
@@ -423,10 +527,11 @@ export default function Game() {
     // ---- GAME LOGIC ----
 
     function loseLife() {
-      if (invulnerable) return;
+      if (invulnerable || winPending) return;
       livesVal--;
       invulnerable = true;
       damagedFrames = 270;
+      meteorHalfDamage = false;
       playHit();
       setLives(livesVal);
       setHalfDamage(false);
@@ -460,46 +565,6 @@ export default function Game() {
 
     function updateGame() {
       if (!gameRunning) return;
-
-      if (buyBulletsRef.current) {
-        buyBulletsRef.current = false;
-        if (coinsVal >= BULLET_BUY_COST) {
-          coinsVal -= BULLET_BUY_COST;
-          bulletsVal += BULLET_BUY_COUNT;
-          setCoins(coinsVal);
-          setBullets(bulletsVal);
-          pauseFrames = 90;
-          buyFlashFrames = 90;
-          buyFlashText = "+ 5 bullets!";
-        }
-      }
-
-      if (buyLivesRef.current) {
-        buyLivesRef.current = false;
-        if (coinsVal >= 150) {
-          coinsVal -= 150;
-          livesVal += 1;
-          setCoins(coinsVal);
-          setLives(livesVal);
-          setLifeGained(true);
-          pauseFrames = 90;
-          buyFlashFrames = 90;
-          buyFlashText = "❤️ +1 life!";
-        }
-      }
-
-      if (buyShieldsRef.current) {
-        buyShieldsRef.current = false;
-        if (coinsVal >= 50) {
-          coinsVal -= 50;
-          meteorShieldsVal += 1;
-          setCoins(coinsVal);
-          setShields(meteorShieldsVal);
-          pauseFrames = 90;
-          buyFlashFrames = 90;
-          buyFlashText = "🛡️ +1 shield!";
-        }
-      }
 
       if (pauseFrames > 0) { pauseFrames--; return; }
 
@@ -688,7 +753,7 @@ export default function Game() {
               particles.push(p);
             }
             floatingTexts.push({ x: ex + ew / 2, y: ey - 10, text: "💥 YOU SHOT THE EGG!", alpha: 1, vy: 1.1, color: "#FF4444", fontSize: 18 });
-            setTimeout(() => { if (gameRunning) { endGame(); setEggWasShot(true); } }, 1500);
+            setTimeout(() => { setEggWasShot(true); if (gameRunning) endGame(); }, 1500);
             hit = true;
           }
         }
@@ -807,7 +872,8 @@ export default function Game() {
               playMeteorImpact();
               invulnerable = true;
               floatingTexts.push({ x: ship.x + ship.width / 2, y: ship.y - 10, text: "½ hit!", alpha: 1, vy: 1.2, color: "#ff8800" });
-              setTimeout(() => { invulnerable = false; }, 800);
+              if (halfDamageTimeoutId) clearTimeout(halfDamageTimeoutId);
+              halfDamageTimeoutId = setTimeout(() => { invulnerable = false; halfDamageTimeoutId = null; }, 800);
             }
           }
         }
@@ -986,6 +1052,7 @@ export default function Game() {
         lastEgg.update();
         if (lastEgg.checkCatch()) {
           lastEgg.caught = true;
+          winPending = true;
           const ecx = lastEgg.x + lastEgg.width / 2;
           const ecy = lastEgg.y + lastEgg.height / 2;
           playExplosion();
@@ -1057,6 +1124,45 @@ export default function Game() {
         setTimeout(() => setCountdown(null), 700);
       }
 
+      // Process buys — runs whether paused or not
+      if (buyBulletsRef.current) {
+        buyBulletsRef.current = false;
+        if (coinsVal >= BULLET_BUY_COST) {
+          coinsVal -= BULLET_BUY_COST;
+          bulletsVal += BULLET_BUY_COUNT;
+          setCoins(coinsVal);
+          setBullets(bulletsVal);
+          if (!pausedRef.current) pauseFrames = 90;
+          buyFlashFrames = 90;
+          buyFlashText = "+ 5 bullets!";
+        }
+      }
+      if (buyLivesRef.current) {
+        buyLivesRef.current = false;
+        if (coinsVal >= 200) {
+          coinsVal -= 200;
+          livesVal += 1;
+          setCoins(coinsVal);
+          setLives(livesVal);
+          setLifeGained(true);
+          if (!pausedRef.current) pauseFrames = 90;
+          buyFlashFrames = 90;
+          buyFlashText = "❤️ +1 life!";
+        }
+      }
+      if (buyShieldsRef.current) {
+        buyShieldsRef.current = false;
+        if (coinsVal >= 70) {
+          coinsVal -= 70;
+          meteorShieldsVal += 1;
+          setCoins(coinsVal);
+          setShields(meteorShieldsVal);
+          if (!pausedRef.current) pauseFrames = 90;
+          buyFlashFrames = 90;
+          buyFlashText = "🛡️ +1 shield!";
+        }
+      }
+
       if (pausedRef.current) {
         drawFrame();
         ctx.save();
@@ -1072,6 +1178,18 @@ export default function Game() {
         ctx.shadowBlur = 0;
         ctx.fillStyle = "rgba(255,255,255,0.45)";
         ctx.fillText("Press P or Escape to resume", canvas.width / 2, canvas.height / 2 + 22);
+        if (buyFlashFrames > 0) {
+          buyFlashFrames--;
+          const alpha = buyFlashFrames < 30 ? buyFlashFrames / 30 : 1;
+          ctx.globalAlpha = alpha;
+          ctx.font = "bold 22px Arial";
+          ctx.shadowColor = "rgba(100,200,255,0.9)";
+          ctx.shadowBlur = 18;
+          ctx.fillStyle = "#64C8FF";
+          ctx.fillText(buyFlashText, canvas.width / 2, canvas.height / 2 + 58);
+          ctx.globalAlpha = 1;
+          ctx.shadowBlur = 0;
+        }
         ctx.restore();
         animFrameId = requestAnimationFrame(gameLoop);
         return;
@@ -1092,10 +1210,7 @@ export default function Game() {
         ctx.shadowBlur = 24;
         ctx.fillStyle = "#64C8FF";
         ctx.fillText(buyFlashText, canvas.width / 2, cy - 16);
-        ctx.font = "14px Arial";
-        ctx.fillStyle = "rgba(255,255,255,0.7)";
         ctx.shadowBlur = 0;
-        ctx.fillText("PAUSED", canvas.width / 2, cy + 16);
         ctx.restore();
       }
 
@@ -1142,8 +1257,6 @@ export default function Game() {
       }
     };
 
-    canvas._fireBullet = fireBullet;
-
     const onTouchStart = (e) => {
       e.preventDefault();
       const rect = canvas.getBoundingClientRect();
@@ -1166,7 +1279,8 @@ export default function Game() {
     window.addEventListener("keyup", onKeyUp);
     canvas.addEventListener("touchstart", onTouchStart, { passive: false });
     canvas.addEventListener("touchend", onTouchEnd, { passive: false });
-    canvas.addEventListener("touchmove", (e) => e.preventDefault(), { passive: false });
+    const onTouchMove = (e) => e.preventDefault();
+    canvas.addEventListener("touchmove", onTouchMove, { passive: false });
 
     const onWheel = (e) => e.preventDefault();
     window.addEventListener("wheel", onWheel, { passive: false });
@@ -1179,10 +1293,14 @@ export default function Game() {
       cancelAnimationFrame(animFrameId);
       if (flashIntervalId) clearInterval(flashIntervalId);
       if (levelUpTimerId) clearTimeout(levelUpTimerId);
+      if (halfDamageTimeoutId) clearTimeout(halfDamageTimeoutId);
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("wheel", onWheel);
+      canvas.removeEventListener("touchstart", onTouchStart);
+      canvas.removeEventListener("touchend", onTouchEnd);
+      canvas.removeEventListener("touchmove", onTouchMove);
       document.body.style.overflow = "";
       bgMusic.stop();
       audioCtx.close();
@@ -1269,11 +1387,14 @@ export default function Game() {
         height: "100vh", paddingTop: gameStarted && !isGameOver ? 0 : NAV_HEIGHT,
         boxSizing: "border-box", overflow: "hidden",
         alignItems: "center", background: "#05071a",
+        position: "relative",
       }}>
+      <GameStarfield />
       <div style={{
         display: "flex", flexDirection: "column",
         width: "100%", maxWidth: GAME_MAX_WIDTH,
         flex: 1, overflow: "hidden",
+        position: "relative", zIndex: 1,
       }}>
         {/* HUD Bar */}
         <div style={{
@@ -1301,15 +1422,18 @@ export default function Game() {
           {/* Center: Lives */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, animation: lifeGained ? "hud-life-gain 0.8s ease-out" : lives <= 1 ? "hud-danger 0.7s ease-in-out infinite" : "none", borderRadius: 6, padding: "3px 8px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              {Array.from({ length: Math.max(lives, 3) }).map((_, i) => (
+              {Array.from({ length: Math.min(Math.max(lives, 3), 5) }).map((_, i) => (
                 <HeartIcon
                   key={i}
                   filled={i < (halfDamage ? lives - 1 : lives)}
                   half={halfDamage && i === lives - 1}
                 />
               ))}
+              {lives > 5 && (
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#FF6688", lineHeight: 1 }}>+{lives - 5}</span>
+              )}
             </div>
-            <BuyButton onClick={() => { buyLivesRef.current = true; }} disabled={coins < 150} label="+1 🪙150" cost={150} />
+            <BuyButton onClick={() => { buyLivesRef.current = true; }} disabled={coins < 200} label="+1 🪙200" cost={200} />
           </div>
 
           {/* Right: Coins, Bullets, Shields, Mute */}
@@ -1326,14 +1450,14 @@ export default function Game() {
             <div style={{ display: "flex", alignItems: "center", gap: 5, animation: bullets < 5 ? "hud-warn 0.9s ease-in-out infinite" : "none", borderRadius: 5, padding: "2px 4px" }}>
               <span style={{ fontSize: 14 }}>🔫</span>
               <span style={{ fontSize: 17, fontWeight: 700, color: bullets === 0 ? "#ff4444" : bullets < 5 ? "#ffcc66" : "#fff", lineHeight: 1 }}>{bullets}</span>
-              <BuyButton onClick={() => { buyBulletsRef.current = true; }} disabled={coins < 30} label="+5 🪙30" cost={30} />
+              <BuyButton onClick={() => { buyBulletsRef.current = true; }} disabled={coins < 100} label="+30 🪙100" cost={100} />
             </div>
 
             {/* Shields */}
             <div style={{ display: "flex", alignItems: "center", gap: 5, animation: shields === 0 ? "hud-warn 0.9s ease-in-out infinite" : "none", borderRadius: 5, padding: "2px 4px" }}>
               <span style={{ fontSize: 14 }}>🛡️</span>
               <span style={{ fontSize: 17, fontWeight: 700, color: shields === 0 ? "#ff4444" : "#fff", lineHeight: 1 }}>{shields}</span>
-              <BuyButton onClick={() => { buyShieldsRef.current = true; }} disabled={coins < 50} label="+1 🪙50" cost={50} />
+              <BuyButton onClick={() => { buyShieldsRef.current = true; }} disabled={coins < 70} label="+1 🪙70" cost={70} />
             </div>
 
             <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.1)" }} />
@@ -1401,7 +1525,7 @@ export default function Game() {
               <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", letterSpacing: 3, textTransform: "uppercase" }}>Click to play</div>
               <div style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", letterSpacing: 1, textAlign: "center", lineHeight: 2 }}>
                 <span style={{ color: "rgba(255,255,255,0.45)" }}>← → / A / D</span> move &nbsp;·&nbsp; <span style={{ color: "rgba(255,255,255,0.45)" }}>Space</span> shoot &nbsp;·&nbsp; <span style={{ color: "rgba(255,255,255,0.45)" }}>S</span> shield &nbsp;·&nbsp; <span style={{ color: "rgba(255,255,255,0.45)" }}>P / Esc</span> pause<br/>
-                <span style={{ color: "rgba(255,255,255,0.45)" }}>1</span> buy bullets 🪙30 &nbsp;·&nbsp; <span style={{ color: "rgba(255,255,255,0.45)" }}>2</span> buy shield 🪙50 &nbsp;·&nbsp; <span style={{ color: "rgba(255,255,255,0.45)" }}>3</span> buy life 🪙150<br/>
+                <span style={{ color: "rgba(255,255,255,0.45)" }}>1</span> buy bullets 🪙100 &nbsp;·&nbsp; <span style={{ color: "rgba(255,255,255,0.45)" }}>2</span> buy shield 🪙70 &nbsp;·&nbsp; <span style={{ color: "rgba(255,255,255,0.45)" }}>3</span> buy life 🪙200<br/>
                 ❤️ catch Heart Alien (+1 life, lv4+) &nbsp;·&nbsp; 🛡️ Shield Alien (+1 shield, lv3+) &nbsp;·&nbsp; 💣 avoid Bomb Alien (−1 life, lv7+)<br/>
                 or click the HUD buttons directly
               </div>

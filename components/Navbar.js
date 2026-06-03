@@ -91,6 +91,7 @@ export default function Navbar() {
                         aria-label={item.aria}
                         href={item.href}
                         key={item.label}
+                        aria-current={router.asPath === item.href ? "page" : undefined}
                         className={`${
                           router.pathname == "/" + item.href ? "active" : ""
                         } text-white  hover:underline menu-a`}
@@ -107,6 +108,7 @@ export default function Navbar() {
             {/* Mobile Nav */}
 
             <div
+              id="mobile-nav"
               className={`mobile-nav ${
                 mobileNavExpanded ? "block h-full" : ""
               }`}
@@ -146,12 +148,15 @@ export default function Navbar() {
 
             {/* Language Toggle */}
             <div className="flex-end mt-[-9px]">
-              <a
-                role="button"
+              <button
+                type="button"
                 ref={dropdown}
                 id="nav-button"
-                aria-label="mobile menu"
+                aria-label={mobileNavExpanded ? "Close mobile menu" : "Open mobile menu"}
+                aria-expanded={mobileNavExpanded}
+                aria-controls="mobile-nav"
                 className={`${mobileNavExpanded ? "open" : ""} nav-button`}
+                style={{ background: "none", border: "none", padding: 0 }}
                 onClick={() => {
                   setMobileNavExpanded(!mobileNavExpanded);
                 }}
@@ -159,7 +164,7 @@ export default function Navbar() {
                 <span></span>
                 <span></span>
                 <span></span>
-              </a>
+              </button>
             </div>
           </div>
         </nav>

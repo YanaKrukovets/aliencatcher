@@ -2,7 +2,7 @@ import React from "react";
 
 const AboutGame = () => {
   return (
-    <div id="aboutgame" className="font-roboto py-[60px]" style={{ borderTop: "1px solid rgba(30,107,184,0.15)", color: "#1a1a2e" }}>
+    <section id="aboutgame" className="font-roboto py-[60px]" style={{ borderTop: "1px solid rgba(30,107,184,0.15)", color: "#1a1a2e" }}>
       <div>
         <div className="max-w-wrapper px-5 mx-auto py-[20px] max-w-[65%] md:max-w-full">
           <h2 className="pb-[10px] text-[27px]" style={{ color: "#1e6bb8" }}>
@@ -29,9 +29,9 @@ const AboutGame = () => {
             <li><b>Space</b> — shoot; blast rocks and enemies out of the way</li>
             <li><b>S</b> — activate a meteor shield (blocks the next meteor storm hit)</li>
             <li><b>P / Escape</b> — pause and resume the game</li>
-            <li><b>1</b> — buy 5 bullets for 🪙30</li>
-            <li><b>2</b> — buy 1 shield for 🪙50</li>
-            <li><b>3</b> — buy 1 extra life for 🪙150</li>
+            <li><b>1</b> — buy 30 bullets for 🪙100</li>
+            <li><b>2</b> — buy 1 shield for 🪙70</li>
+            <li><b>3</b> — buy 1 extra life for 🪙200</li>
             <li>Catch falling aliens with your ship to earn points and coins</li>
             <li>You start with 3 lives and 2 shields — lose all lives and it&apos;s game over</li>
           </ul>
@@ -75,7 +75,7 @@ const AboutGame = () => {
           </ul>
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 
