@@ -203,7 +203,7 @@ const HeaderBanner = () => {
           <Link className="banner-btn" href="/game">
             <span /><span /><span /><span />Play Game
           </Link>
-          <Link className="banner-btn" href="https://buymeacoffee.com/yanashellii" target="_blank">
+          <Link className="banner-btn" href="https://buymeacoffee.com/yanashellii" target="_blank" rel="noopener noreferrer">
             <span /><span /><span /><span />Support
           </Link>
         </div>

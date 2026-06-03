@@ -45,16 +45,8 @@ export default function Navbar() {
 
   // disable scrolling on mobile nav menu
   useEffect(() => {
-    if (mobileNavExpanded) {
-      document.body.style.position = "fixed";
-      function handleClick(event) {}
-      window.addEventListener("click", handleClick);
-      return () => {
-        window.removeEventListener("click", handleClick);
-        document.body.style.position = "relative";
-      };
-    }
-    return () => (document.body.style.position = "relative");
+    document.body.style.position = mobileNavExpanded ? "fixed" : "relative";
+    return () => { document.body.style.position = "relative"; };
   }, [mobileNavExpanded]);
 
   return (

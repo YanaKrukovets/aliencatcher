@@ -69,16 +69,8 @@ export default function Header() {
 
   // disable scrolling on mobile nav menu
   useEffect(() => {
-    if (mobileNavExpanded) {
-      document.body.style.position = "fixed";
-      function handleClick(event) {}
-      window.addEventListener("click", handleClick);
-      return () => {
-        window.removeEventListener("click", handleClick);
-        document.body.style.position = "relative";
-      };
-    }
-    return () => (document.body.style.position = "relative");
+    document.body.style.position = mobileNavExpanded ? "fixed" : "relative";
+    return () => { document.body.style.position = "relative"; };
   }, [mobileNavExpanded]);
 
   return (
@@ -147,6 +139,7 @@ export default function Header() {
             {/* Mobile Nav */}
 
             <div
+              id="mobile-nav"
               className={`mobile-nav ${
                 mobileNavExpanded ? "block h-full" : ""
               }`}
@@ -192,12 +185,15 @@ export default function Header() {
                 <NavLangToggle />
               </div>*/}
 
-              <a
-                role="button"
+              <button
+                type="button"
                 ref={dropdown}
                 id="nav-button"
-                aria-label="mobile menu"
+                aria-label={mobileNavExpanded ? "Close mobile menu" : "Open mobile menu"}
+                aria-expanded={mobileNavExpanded}
+                aria-controls="mobile-nav"
                 className={`${mobileNavExpanded ? "open" : ""} nav-button`}
+                style={{ background: "none", border: "none", padding: 0 }}
                 onClick={() => {
                   setMobileNavExpanded(!mobileNavExpanded);
                   setIsSubmenu(false);
@@ -206,7 +202,7 @@ export default function Header() {
                 <span></span>
                 <span></span>
                 <span></span>
-              </a>
+              </button>
             </div>
           </div>
         </nav>

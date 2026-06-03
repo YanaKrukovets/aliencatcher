@@ -333,6 +333,7 @@ export default function Game() {
       if (audioCtx.state === "suspended") audioCtx.resume().then(() => bgMusic.start());
     };
     document.addEventListener("touchstart", resumeAudio, { once: true });
+    document.addEventListener("pointerdown", resumeAudio, { once: true });
     document.addEventListener("click", resumeAudio, { once: true });
 
     const {
@@ -1323,6 +1324,7 @@ export default function Game() {
       window.removeEventListener("wheel", onWheel);
       window.removeEventListener("contextmenu", onContextMenu);
       document.removeEventListener("touchstart", resumeAudio);
+      document.removeEventListener("pointerdown", resumeAudio);
       document.removeEventListener("click", resumeAudio);
       document.body.style.overflow = "";
       bgMusic.stop();
@@ -1341,8 +1343,20 @@ export default function Game() {
   return (
     <>
       <Head>
-        <title>AlifallX: Don&apos;t Leave Them Behind</title>
-        <meta name="description" content="Catch the falling AlifallX with your spaceship. Don't leave them behind!" />
+        <title>Play AlifallX: Don&apos;t Leave Them Behind — Free Browser Game</title>
+        <meta name="description" content="Catch falling aliens, dodge rocks, survive meteor storms, and fight UFOs. Free arcade browser game — no install needed." />
+        <link rel="canonical" href="https://www.alifallx.com/game" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+        <meta property="og:url" content="https://www.alifallx.com/game" />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="Play AlifallX: Don't Leave Them Behind — Free Browser Game" />
+        <meta property="og:description" content="Catch falling aliens, dodge rocks, survive meteor storms, and fight UFOs. Free arcade browser game — no install needed." />
+        <meta property="og:image" content="https://www.alifallx.com/images/og-image.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta property="twitter:url" content="https://www.alifallx.com/game" />
+        <meta name="twitter:title" content="Play AlifallX: Don't Leave Them Behind — Free Browser Game" />
+        <meta name="twitter:description" content="Catch falling aliens, dodge rocks, survive meteor storms, and fight UFOs. Free arcade browser game — no install needed." />
+        <meta name="twitter:image" content="https://www.alifallx.com/images/og-image.png" />
       </Head>
       <style>{`
         * { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
