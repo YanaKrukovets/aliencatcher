@@ -3,7 +3,7 @@
 ## Project Overview
 Space arcade game built with **Next.js 13 + Tailwind CSS**. Players control a spaceship on an HTML5 canvas, dodge rocks, and catch/destroy aliens. The site also has a landing page with About, Contact, and game info sections.
 
-Completed features: multiple levels with dynamic difficulty scaling (speed, spawn rates, color palettes per level), level-up banner/animation, countdown timer at game start, coin economy (earn/buy bullets/shields/lives), meteor storm hazard with safe zones, UFO with tractor beam, gravity well, scramble control-flip, boss rocks, HeartAlien (+1 life), ShieldAlien (+1 shield), ReverseAlien (shoot for coins), The Last Egg win condition, full mobile support (touch controls, fixed-timestep loop, responsive ship/rock sizing).
+Completed features: multiple levels with dynamic difficulty scaling (speed, spawn rates, color palettes per level), level-up banner/animation, countdown timer at game start, coin economy (earn/buy bullets/shields/lives), meteor storm hazard, UFO with tractor beam, gravity well, scramble control-flip, boss rocks, HeartAlien (+1 life), ShieldAlien (+1 shield), ReverseAlien (shoot for coins), The Last Egg win condition, full mobile support (touch controls, fixed-timestep loop, responsive ship/rock sizing).
 
 Planned future features: multiplayer (2+ players on same device or online), power-ups and upgrades, leaderboard.
 
