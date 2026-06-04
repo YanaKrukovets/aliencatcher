@@ -381,6 +381,64 @@ body.game-active header {
 
 .game-stat-emoji { font-size: 22px; }
 
+// Share buttons row on game-over / mission-complete screens
+.share-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.share-label {
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.28);
+}
+
+.share-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.share-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.13);
+    color: #fff;
+  }
+
+  svg { flex-shrink: 0; }
+}
+
+.share-linkedin-hint {
+  font-size: 11px;
+  color: rgba(100, 180, 255, 0.75);
+  letter-spacing: 0.5px;
+  text-align: center;
+  animation: fade-in-hint 0.3s ease;
+}
+
+@keyframes fade-in-hint {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 // Controls text in start screen
 .controls-keyboard,
 .controls-touch {
