@@ -6,12 +6,8 @@ import Image from "next/image";
 
 export default function Navbar() {
   const router = useRouter();
-  const { locale, asPath } = router;
   const [mobileNavExpanded, setMobileNavExpanded] = useState(false);
   const dropdown = useRef(null);
-
-  const [isReveal, setIsReveal] = useState(true);
-  const reveal = () => setIsReveal(!isReveal);
   let nav;
 
   nav = {

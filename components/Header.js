@@ -8,14 +8,10 @@ import Image from "next/image";
 
 export default function Header() {
   const router = useRouter();
-  const { locale, asPath } = router;
+  const { locale } = router;
   const [mobileNavExpanded, setMobileNavExpanded] = useState(false);
   const dropdown = useRef(null);
-  const [isSubmenu, setIsSubmenu] = useState(false);
   const t = locale === "en" ? en : fr;
-  const subMenu = useRef(null);
-  const [isReveal, setIsReveal] = useState(true);
-  const reveal = () => setIsReveal(!isReveal);
   let nav;
 
   if (locale === "en") {
@@ -193,10 +189,7 @@ export default function Header() {
                 aria-expanded={mobileNavExpanded}
                 aria-controls="mobile-nav"
                 className={`${mobileNavExpanded ? "open" : ""} nav-button`}
-                onClick={() => {
-                  setMobileNavExpanded(!mobileNavExpanded);
-                  setIsSubmenu(false);
-                }}
+                onClick={() => setMobileNavExpanded(!mobileNavExpanded)}
               >
                 <span></span>
                 <span></span>

@@ -56,7 +56,7 @@ const AboutGame = () => {
           <ul className="list-disc list-inside pl-[15px]">
             <li><b>Rocks</b> — fall from the top; aliens walk off the edges and drop. Boss rocks at higher levels take 5 hits</li>
             <li><b>Meteor Storm</b> — a barrage of meteors rains down; one zone is safe — read the warning and move there</li>
-            <li><b>UFO</b> — flies across the screen firing a tractor beam that abducts your aliens; shoot it down (15 HP) for 🪙300</li>
+            <li><b>UFO</b> — flies across the screen firing a tractor beam that abducts your aliens; shoot it down (15 HP) for 🪙400</li>
             <li><b>Reverse Alien</b> — rises from the bottom upside-down; shoot it before it escapes for 🪙25</li>
             <li>❤️ <b>Heart Alien</b> (level 4+) — catch it to gain an extra life</li>
             <li>🛡️ <b>Shield Alien</b> (level 3+) — catch it to gain an extra meteor shield charge</li>

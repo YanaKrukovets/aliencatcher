@@ -19,26 +19,26 @@ const About = () => {
             />
           </div>
           <div className="max-w-[65%] md:max-w-full md:mt-[10px]">
-            <h3 className="section-heading-cyan pb-[10px] text-[20px]">
+            <h2 className="section-heading-cyan pb-[10px] text-[20px]">
               <b>Who am I?</b>
-            </h3>
+            </h2>
             <p>
               My name is Yana Krukovets. I am a Front-End Developer based in
               Ottawa, Canada. I like to code things from scratch and enjoy
               bringing ideas to life in the browser.
             </p>
 
-            <h3 className="section-heading-cyan pb-[10px] pt-[20px] text-[20px]">
+            <h2 className="section-heading-cyan pb-[10px] pt-[20px] text-[20px]">
               <b>Skills</b>
-            </h3>
+            </h2>
             <p>
               HTML, CSS, JavaScript, ReactJS, Next.js, Tailwind.css, jQuery,
               Bootstrap, Wordpress, Tilda, Sanity, Liquid script, PHP, mySQL
             </p>
 
-            <h3 className="section-heading-cyan pb-[10px] pt-[20px] text-[20px]">
+            <h2 className="section-heading-cyan pb-[10px] pt-[20px] text-[20px]">
               <b>Experience</b>
-            </h3>
+            </h2>
             <p>
               <b>Jan 2023 - Jan 2024:</b> Frontend Developer at{" "}
               <a
@@ -76,9 +76,9 @@ const About = () => {
               Dnipro, Ukraine
             </p>
 
-            <h3 className="section-heading-cyan pb-[10px] pt-[20px] text-[20px]">
+            <h2 className="section-heading-cyan pb-[10px] pt-[20px] text-[20px]">
               <b>Hobbies</b>
-            </h3>
+            </h2>
             <p>
               I like to spend time with my family, play with kids, traveling,
               cycling, hiking, painting and create games.

@@ -8,7 +8,7 @@ import { createDrawFunctions } from "../lib/game/draw";
 
 function HeartIcon({ filled, half }) {
   return (
-    <svg width="18" height="17" viewBox="0 0 24 22" xmlns="http://www.w3.org/2000/svg">
+    <svg width="18" height="17" viewBox="0 0 24 22" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       {half && (
         <defs>
           <clipPath id="hud-half">
@@ -37,6 +37,7 @@ function BuyButton({ onClick, disabled, label, cost }) {
       onClick={onClick}
       onKeyDown={(e) => e.preventDefault()}
       tabIndex={-1}
+      disabled={disabled}
       className="hud-buy"
       title={`${label} — costs 🪙${cost}`}
     >
@@ -236,7 +237,6 @@ export default function Game() {
 
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
-    const isTouchDevice = typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0);
     const shipBottomMargin = isTouchDevice ? 160 : 100;
 
     const handleResize = () => {
@@ -582,6 +582,7 @@ export default function Game() {
     function updateGame() {
       if (!gameRunning) return;
 
+      if (screenShakeFrames > 0) screenShakeFrames--;
       if (pauseFrames > 0) { pauseFrames--; return; }
 
       if (gravityWell) {
@@ -1157,7 +1158,7 @@ export default function Game() {
           setBullets(bulletsVal);
           if (!pausedRef.current) pauseFrames = 90;
           buyFlashFrames = 90;
-          buyFlashText = "+ 5 bullets!";
+          buyFlashText = "+ 30 bullets!";
         }
       }
       if (buyLivesRef.current) {
@@ -1533,6 +1534,7 @@ export default function Game() {
               }}
               onKeyDown={(e) => e.preventDefault()}
               tabIndex={-1}
+              aria-label={isPaused ? "Resume (P)" : "Pause (P)"}
               title={isPaused ? "Resume (P)" : "Pause (P)"}
               className="hud-ctrl-btn"
             >
@@ -1551,6 +1553,7 @@ export default function Game() {
               }}
               onKeyDown={(e) => e.preventDefault()}
               tabIndex={-1}
+              aria-label={soundEnabled ? "Mute sounds" : "Unmute sounds"}
               title={soundEnabled ? "Mute sounds" : "Unmute sounds"}
               className="hud-ctrl-btn"
               style={{ opacity: soundEnabled ? 1 : 0.4 }}
@@ -1562,12 +1565,13 @@ export default function Game() {
 
         {/* Game Canvas */}
         <div className="game-canvas-area">
-          <canvas ref={canvasRef} className="block w-full h-full" />
+          <canvas ref={canvasRef} className="block w-full h-full" aria-label="AlifallX game" role="application" />
 
           {/* Touch Controls Overlay */}
           {isTouchDevice && gameStarted && !isGameOver && !isMissionComplete && countdown === null && (
             <div className="touch-controls">
               <button
+                aria-label="Move left"
                 onPointerDown={(e) => { e.preventDefault(); touchControlsRef.current.moveLeft?.(true); }}
                 onPointerUp={(e) => { e.preventDefault(); touchControlsRef.current.moveLeft?.(false); }}
                 onPointerLeave={(e) => { e.preventDefault(); touchControlsRef.current.moveLeft?.(false); }}
@@ -1577,11 +1581,13 @@ export default function Game() {
               >←</button>
               <div className="touch-controls-center">
                 <button
+                  aria-label="Activate shield"
                   onPointerDown={(e) => { e.preventDefault(); touchControlsRef.current.shield?.(); }}
                   onContextMenu={(e) => e.preventDefault()}
                   style={{ ...touchBtnStyle, background: "rgba(68,204,255,0.15)", borderColor: "rgba(68,204,255,0.4)" }}
                 >🛡</button>
                 <button
+                  aria-label="Fire"
                   onPointerDown={(e) => { e.preventDefault(); touchFireIntervalRef.current = setInterval(() => touchControlsRef.current.fire?.(), 180); touchControlsRef.current.fire?.(); }}
                   onPointerUp={(e) => { e.preventDefault(); clearInterval(touchFireIntervalRef.current); }}
                   onPointerLeave={(e) => { e.preventDefault(); clearInterval(touchFireIntervalRef.current); }}
@@ -1591,6 +1597,7 @@ export default function Game() {
                 >🔫</button>
               </div>
               <button
+                aria-label="Move right"
                 onPointerDown={(e) => { e.preventDefault(); touchControlsRef.current.moveRight?.(true); }}
                 onPointerUp={(e) => { e.preventDefault(); touchControlsRef.current.moveRight?.(false); }}
                 onPointerLeave={(e) => { e.preventDefault(); touchControlsRef.current.moveRight?.(false); }}
@@ -1614,7 +1621,7 @@ export default function Game() {
                 <h1 style={{ margin: 0, fontSize: "clamp(28px, 6vw, 48px)", fontWeight: 900, color: "#fff", letterSpacing: 4, animation: "glow-text 2.5s ease-in-out infinite", textTransform: "uppercase" }}>AlifallX</h1>
                 <div className="game-screen__tagline">Catch the falling aliens. Dodge the rocks.</div>
               </div>
-              <button className="play-btn" onClick={() => { window.scrollTo({ top: 0, behavior: "instant" }); const ctx = new (window.AudioContext || window.webkitAudioContext)(); ctx.resume(); audioCtxRef.current = ctx; setGameStarted(true); }}>
+              <button className="play-btn" aria-label="Start game" onClick={() => { window.scrollTo({ top: 0, behavior: "instant" }); const ctx = new (window.AudioContext || window.webkitAudioContext)(); ctx.resume(); audioCtxRef.current = ctx; setGameStarted(true); }}>
                 <div className="play-ring play-ring--1 play-ring--cyan-1" />
                 <div className="play-ring play-ring--2 play-ring--cyan-2" />
                 <div className="play-spin play-spin--cyan" />
@@ -1686,7 +1693,7 @@ export default function Game() {
                   <span className="game-stat-value">{level}</span>
                 </div>
               </div>
-              <button className="play-btn" onClick={handleRestart}>
+              <button className="play-btn" aria-label="Play again" onClick={handleRestart}>
                 <div className="play-ring play-ring--1 play-ring--cyan-1" />
                 <div className="play-ring play-ring--2 play-ring--cyan-2" />
                 <div className="play-spin play-spin--cyan" />
@@ -1725,7 +1732,7 @@ export default function Game() {
                   </div>
                 ))}
               </div>
-              <button className="play-btn" onClick={handleRestart}>
+              <button className="play-btn" aria-label="Play again" onClick={handleRestart}>
                 <div className="play-ring play-ring--1 play-ring--green-1" />
                 <div className="play-ring play-ring--2 play-ring--green-2" />
                 <div className="play-spin play-spin--green" />

@@ -14,17 +14,14 @@ function ContactForm() {
   return (
     <section id="contact" className="contact-section py-[40px] font-roboto">
       <div className="max-w-wrapper px-5 mx-auto  py-[20px] ">
+        <h2 className="section-heading-cyan pb-[10px] text-[27px] max-w-[900px] mx-auto">
+          <b>Have a question?</b>
+        </h2>
         <form
           onSubmit={handleSubmit}
           method="POST"
           className="max-w-[900px] mx-auto"
         >
-          <fieldset>
-            <legend>
-              <h2 className="section-heading-cyan pb-[10px] text-[27px]">
-                <b>Have a question?</b>
-              </h2>
-            </legend>
             <p>* - required fields</p>
             <label htmlFor="name" className="form-label">
               Name:*
@@ -68,7 +65,6 @@ function ContactForm() {
             <button type="submit" className="btn" disabled={state.submitting}>
               Submit
             </button>
-          </fieldset>
         </form>
       </div>
     </section>
