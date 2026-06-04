@@ -16,7 +16,7 @@ export default function Footer() {
       <div className="footer-wrapper">
         <div className="max-w-wrapper px-5 mx-auto">
           <div>
-            © Yana Krukovets, 2025
+            © Yana Krukovets, 2026
           </div>
         </div>
       </div>

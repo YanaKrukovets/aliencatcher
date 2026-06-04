@@ -22,6 +22,11 @@ export default function Navbar() {
       href: "/game",
     },
     item3: {
+      label: "FAQ",
+      aria: "Link to Frequently Asked Questions",
+      href: "/#faq",
+    },
+    item4: {
       label: "Contact",
       aria: "Link to Contact Yana Krukovets",
       href: "/#contact",

@@ -138,6 +138,8 @@ const HeaderBanner = () => {
           </div>
         </div>
 
+        <h1 className="banner-heading">AlifallX: Don&apos;t Leave Them Behind</h1>
+
         <div className="flex flex-wrap gap-5 justify-center">
           <Link className="banner-btn" href="/game">
             <span /><span /><span /><span />Play Game
