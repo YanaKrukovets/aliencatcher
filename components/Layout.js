@@ -3,8 +3,6 @@ import BackToTopButton from "../components/BackToTopButton";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 
-const SITE_URL = "https://www.alifallx.com";
-
 export default function Layout({ children }) {
   return (
     <>
@@ -14,27 +12,6 @@ export default function Layout({ children }) {
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
-
-        <link rel="canonical" href={SITE_URL + "/"} />
-
-        <meta property="og:url" content={SITE_URL + "/"} />
-        <meta property="og:type" content="website" />
-        <meta property="og:title" content="AlifallX: Don't Leave Them Behind" />
-        <meta
-          property="og:description"
-          content="AlifallX: Don't Leave Them Behind. Browser game by Yana Krukovets. Catch falling aliens, dodge rocks, and survive the chaos."
-        />
-        <meta property="og:image" content={SITE_URL + "/images/og-image.png"} />
-
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta property="twitter:domain" content="alifallx.com" />
-        <meta property="twitter:url" content={SITE_URL + "/"} />
-        <meta name="twitter:title" content="AlifallX: Don't Leave Them Behind" />
-        <meta
-          name="twitter:description"
-          content="AlifallX: Don't Leave Them Behind. Browser game by Yana Krukovets. Catch falling aliens, dodge rocks, and survive the chaos."
-        />
-        <meta name="twitter:image" content={SITE_URL + "/images/og-image.png"} />
 
         <meta name="p:domain_verify" content="155e6479dee7fb2c5ff84b2e5da8957f" />
         <meta name="p:domain_verify" content="b5004b976bb28d76591224d39f9edad0" />

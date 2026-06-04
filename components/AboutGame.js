@@ -3,8 +3,7 @@ import React from "react";
 const AboutGame = () => {
   return (
     <section id="aboutgame" className="about-game font-roboto py-[60px]">
-      <div>
-        <div className="max-w-wrapper px-5 mx-auto py-[20px] max-w-full md:max-w-[65%]">
+      <div className="max-w-wrapper px-5 mx-auto py-[20px]">
           <h2 className="section-heading-blue pb-[10px] text-[27px]">
             <b>AlifallX: Don&apos;t Leave Them Behind</b>
           </h2>
@@ -87,7 +86,6 @@ const AboutGame = () => {
             <li>Animated canvas visuals with particles, fireworks, and glowing effects</li>
             <li>Sound effects and music that react to gameplay events</li>
           </ul>
-        </div>
       </div>
     </section>
   );

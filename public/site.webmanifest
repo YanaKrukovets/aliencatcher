@@ -1,0 +1,13 @@
+{
+  "name": "AlifallX: Don't Leave Them Behind",
+  "short_name": "AlifallX",
+  "description": "Free arcade browser game — catch aliens, dodge rocks, survive chaos.",
+  "start_url": "/",
+  "display": "browser",
+  "background_color": "#06091c",
+  "theme_color": "#64C8FF",
+  "icons": [
+    { "src": "/favicon.ico", "sizes": "any", "type": "image/x-icon" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

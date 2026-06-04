@@ -1584,6 +1584,26 @@ export default function Game() {
         <meta name="twitter:title" content="Play AlifallX: Don't Leave Them Behind — Free Browser Game" />
         <meta name="twitter:description" content="Catch falling aliens, dodge rocks, survive meteor storms, and fight UFOs. Free arcade browser game — no install needed." />
         <meta name="twitter:image" content="https://www.alifallx.com/images/og-image.png" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "VideoGame",
+              "name": "AlifallX: Don't Leave Them Behind",
+              "url": "https://www.alifallx.com/game",
+              "description": "Free arcade browser game — pilot a spaceship to rescue falling aliens, dodge rocks, survive meteor storms, fight UFOs, and conquer 50+ levels. No download or account required.",
+              "genre": ["Arcade", "Action"],
+              "operatingSystem": "Web Browser",
+              "applicationCategory": "Game",
+              "isFamilyFriendly": true,
+              "gamePlatform": "Web Browser",
+              "numberOfPlayers": { "@type": "QuantitativeValue", "minValue": 1, "maxValue": 2 },
+              "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+              "author": { "@type": "Person", "name": "Yana Krukovets", "url": "https://www.alifallx.com" },
+            }),
+          }}
+        />
       </Head>
       <style>{`
         * { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
