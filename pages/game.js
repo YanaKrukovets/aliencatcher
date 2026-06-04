@@ -1,10 +1,12 @@
 import Head from "next/head";
+import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import AlienIcon from "../components/AlienIcon";
 import { NAV_HEIGHT, HUD_HEIGHT, GAME_MAX_WIDTH, getLevelColor } from "../lib/game/constants";
 import { createSounds, createBackgroundMusic } from "../lib/game/sounds";
 import { createEntityClasses } from "../lib/game/entities";
 import { createDrawFunctions } from "../lib/game/draw";
+import { connect as mpConnect, send as mpSend, disconnect as mpDisconnect } from "../lib/game/multiplayerSocket";
 
 function HeartIcon({ filled, half }) {
   return (
@@ -230,6 +232,7 @@ function ShareButtons({ score, level, complete }) {
 }
 
 export default function Game() {
+  const router = useRouter();
   const canvasRef = useRef(null);
   const [score, setScore] = useState(0);
   const [coins, setCoins] = useState(0);
@@ -265,6 +268,8 @@ export default function Game() {
   const touchControlsRef = useRef({});
   const touchFireIntervalRef = useRef(null);
   const isTouchDevice = typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0);
+  const multiplayerRef = useRef({ room: null, role: null });
+  const [p2Lives, setP2Lives] = useState(3);
 
   useEffect(() => {
     if (gameStarted && !isGameOver) {
@@ -286,6 +291,20 @@ export default function Game() {
       return () => clearTimeout(t);
     }
   }, [lifeGained]);
+
+  // Auto-start game when arriving from the lobby with room+role in URL
+  useEffect(() => {
+    if (!router.isReady) return;
+    const { room, role } = router.query;
+    if (room && role && !gameStarted) {
+      multiplayerRef.current = { room, role };
+      window.scrollTo({ top: 0, behavior: "instant" });
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      ctx.resume();
+      audioCtxRef.current = ctx;
+      setGameStarted(true);
+    }
+  }, [router.isReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRestart = () => {
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -405,6 +424,14 @@ export default function Game() {
     let winMusicActive = false;
     let winPending = false;
 
+    // ---- MULTIPLAYER STATE ----
+    const { room: mpRoom, role: mpRole } = multiplayerRef.current;
+    const isMultiplayer = !!(mpRoom && mpRole);
+    const isP1 = mpRole === "p1";
+    let p2Keys = {};
+    let p2LivesVal = 3;
+    let mpFrameTick = 0;
+
     // ---- SOUNDS ----
     // AudioContext was created and resumed synchronously in the button's onClick handler
     // (the only way to unlock audio on iOS without requiring a second tap).
@@ -453,6 +480,65 @@ export default function Game() {
       scale: 1,
       trailParticles: [],
     };
+
+    // Remote ship — driven by P2's inputs (P1 mode) or P1's broadcasts (P2 mode).
+    // Starts off-screen; only visible in multiplayer.
+    const remoteShip = {
+      x: -200,
+      y: canvas.height - shipBottomMargin,
+      width: shipW,
+      height: shipH,
+      speed: 6,
+      flash: false,
+      engineGlow: 0,
+      tilt: 0,
+      scale: 1,
+      trailParticles: [],
+      visible: false,
+    };
+
+    // Multiplayer socket setup
+    if (isMultiplayer) {
+      remoteShip.visible = true;
+      remoteShip.x = isP1
+        ? canvas.width / 2 + shipW / 2 + 50
+        : canvas.width / 2 - shipW / 2 - 50;
+
+      mpConnect(mpRoom, (msg) => {
+        if (msg.type === "input" && isP1) {
+          p2Keys = msg.keys;
+        } else if (msg.type === "state" && !isP1) {
+          ship.x = msg.p1Ship.x;
+          ship.tilt = msg.p1Ship.tilt;
+          remoteShip.x = msg.p2Ship.x;
+          remoteShip.tilt = msg.p2Ship.tilt;
+          scoreVal = msg.score;
+          p2LivesVal = msg.p2Lives;
+          setP2Lives(msg.p2Lives);
+          setScore(msg.score);
+          if (msg.gameOver && gameRunning) {
+            gameRunning = false;
+            setIsGameOver(true);
+          }
+        } else if (msg.type === "partner-left") {
+          remoteShip.visible = false;
+          if (isP1) {
+            floatingTexts.push({ x: ship.x + ship.width / 2, y: ship.y - 60, text: "P2 disconnected", alpha: 1, vy: 0.8, color: "rgba(180,100,255,0.9)" });
+          } else {
+            gameRunning = false;
+            setIsGameOver(true);
+          }
+        } else if (msg.type === "init-state" && !isP1) {
+          scoreVal = msg.score;
+          levelVal = msg.level;
+          setScore(msg.score);
+          setLevel(msg.level);
+        }
+      }, isP1 ? () => {
+        // Send initial state when P1's socket opens so P2 starts with correct score/level
+        mpSend({ type: "init-state", score: scoreVal, level: levelVal });
+      } : undefined);
+    }
 
     const shipImg = new Image();
     let shipImgLoaded = false;
@@ -616,6 +702,7 @@ export default function Game() {
       // in-place arrays — no getters needed, but consistent to use state
       get aliens()             { return aliens; },
       get bulletsList()        { return bulletsList; },
+      get remoteShip()         { return remoteShip; },
     };
 
     const { drawFrame } = createDrawFunctions(ctx, canvas, ship, drawState);
@@ -708,6 +795,19 @@ export default function Game() {
         }
       }
       engineTrails = engineTrails.filter((t) => { t.x += t.vx; t.y += t.vy; t.life--; return t.life > 0; });
+
+      // P1 drives the remote ship from P2's received inputs
+      if (isMultiplayer && isP1 && remoteShip.visible) {
+        if (p2Keys.left) {
+          remoteShip.x = Math.max(0, remoteShip.x - remoteShip.speed);
+          remoteShip.tilt = Math.max(-0.2, remoteShip.tilt - 0.03);
+        } else if (p2Keys.right) {
+          remoteShip.x = Math.min(canvas.width - remoteShip.width, remoteShip.x + remoteShip.speed);
+          remoteShip.tilt = Math.min(0.2, remoteShip.tilt + 0.03);
+        } else {
+          remoteShip.tilt *= 0.85;
+        }
+      }
 
       if (shootCooldown > 0) shootCooldown--;
 
@@ -988,7 +1088,8 @@ export default function Game() {
 
         if (alien.isDoneBeingCaught()) { aliens.splice(i, 1); continue; }
 
-        if (!alien.caught && !alien.onRock && alien.checkCatch()) {
+        const caughtByRemote = isMultiplayer && isP1 && remoteShip.visible && !alien.caught && !alien.onRock && alien.checkCatch(remoteShip);
+        if (caughtByRemote || (!alien.caught && !alien.onRock && alien.checkCatch(ship))) {
           alien.caught = true;
           playCatch(alien.isGolden, alien.isQueen);
           if (spotlightAlien === alien) spotlightAlien = null;
@@ -1039,7 +1140,17 @@ export default function Game() {
       heartAliens = heartAliens.filter((ha) => {
         ha.update();
         if (ha.isDoneBeingCaught()) return false;
-        if (!ha.caught && ha.checkCatch()) {
+        const haByRemote = isMultiplayer && isP1 && remoteShip.visible && !ha.caught && ha.checkCatch(remoteShip);
+        if (haByRemote) {
+          ha.caught = true;
+          playCatch(false, false);
+          p2LivesVal += 1;
+          setP2Lives(p2LivesVal);
+          floatingTexts.push({ x: ha.x + ha.width / 2, y: ha.y - 10, text: "❤️ P2 +1 life!", alpha: 1, vy: 1.8, color: "#FF4466" });
+          for (let j = 0; j < 20; j++) {
+            particles.push(new Particle(ha.x + ha.width / 2, ha.y + ha.height / 2, ["#FF4466", "#FF88AA", "#ffffff"][j % 3]));
+          }
+        } else if (!ha.caught && ha.checkCatch(ship)) {
           ha.caught = true;
           playCatch(false, false);
           livesVal += 1;
@@ -1056,7 +1167,7 @@ export default function Game() {
       shieldAliens = shieldAliens.filter((sa) => {
         sa.update();
         if (sa.isDoneBeingCaught()) return false;
-        if (!sa.caught && sa.checkCatch()) {
+        if (!sa.caught && (sa.checkCatch(ship) || (isMultiplayer && isP1 && remoteShip.visible && sa.checkCatch(remoteShip)))) {
           sa.caught = true;
           playCatch(false, false);
           meteorShieldsVal += 1;
@@ -1158,7 +1269,7 @@ export default function Game() {
       }
       if (lastEgg) {
         lastEgg.update();
-        if (lastEgg.checkCatch()) {
+        if (lastEgg.checkCatch(ship) || (isMultiplayer && isP1 && remoteShip.visible && lastEgg.checkCatch(remoteShip))) {
           lastEgg.caught = true;
           winPending = true;
           const ecx = lastEgg.x + lastEgg.width / 2;
@@ -1311,7 +1422,7 @@ export default function Game() {
             setCountdown(0);
             setTimeout(() => setCountdown(null), 700);
           }
-          updateGame();
+          if (!isMultiplayer || isP1) updateGame();
         }
         accumulator -= STEP;
       }
@@ -1332,6 +1443,33 @@ export default function Game() {
         ctx.fillText(buyFlashText, canvas.width / 2, cy - 16);
         ctx.shadowBlur = 0;
         ctx.restore();
+      }
+
+      // Multiplayer: P1 broadcasts state every 3 ticks; P2 skips simulation and sends inputs
+      if (isMultiplayer && gameRunning) {
+        mpFrameTick++;
+        if (mpFrameTick % 3 === 0) {
+          if (isP1) {
+            mpSend({
+              type: "state",
+              p1Ship: { x: ship.x, tilt: ship.tilt },
+              p2Ship: { x: remoteShip.x, tilt: remoteShip.tilt },
+              score: scoreVal,
+              p2Lives: p2LivesVal,
+              gameOver: !gameRunning,
+            });
+          } else {
+            mpSend({
+              type: "input",
+              keys: {
+                left:   !!(keys["ArrowLeft"]  || keys["a"]),
+                right:  !!(keys["ArrowRight"] || keys["d"]),
+                fire:   !!keys[" "],
+                shield: !!(keys["s"] || keys["S"]),
+              },
+            });
+          }
+        }
       }
 
       animFrameId = requestAnimationFrame(gameLoop);
@@ -1417,6 +1555,7 @@ export default function Game() {
       document.body.style.overflow = "";
       bgMusic.stop();
       audioCtx.close();
+      if (isMultiplayer) mpDisconnect();
     };
   }, [restartKey, gameStarted]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1468,11 +1607,17 @@ export default function Game() {
           0%, 100% { text-shadow: 0 0 20px rgba(100,200,255,0.8), 0 0 40px rgba(100,200,255,0.4); }
           50% { text-shadow: 0 0 30px rgba(100,200,255,1), 0 0 60px rgba(100,200,255,0.6), 0 0 80px rgba(100,200,255,0.3); }
         }
-        .play-btn:hover .play-circle {
+        .play-btn:hover .play-circle--cyan,
+        .start-mode-option:hover .play-circle--cyan {
           transform: scale(1.08);
           background: rgba(100,200,255,0.25);
         }
-        .play-btn:hover .play-triangle {
+        .play-btn:hover .play-circle,
+        .start-mode-option:hover .play-circle {
+          transform: scale(1.08);
+        }
+        .play-btn:hover .play-triangle,
+        .start-mode-option:hover .play-triangle {
           border-left-color: #fff;
         }
         .play-circle { transition: transform 0.2s ease, background 0.2s ease; }
@@ -1579,6 +1724,16 @@ export default function Game() {
             </div>
             <BuyButton onClick={() => { buyLivesRef.current = true; }} disabled={coins < 200} label="+1 🪙200" cost={200} />
           </div>
+
+          {/* P2 lives indicator — multiplayer only */}
+          {multiplayerRef.current.room && (
+            <div className="hud-p2-lives">
+              <span className="hud-p2-label">P2</span>
+              {Array.from({ length: Math.min(Math.max(p2Lives, 3), 5) }).map((_, i) => (
+                <HeartIcon key={i} filled={i < p2Lives} half={false} />
+              ))}
+            </div>
+          )}
 
           {/* Right: Coins, Bullets, Shields, Mute */}
           <div className="hud-right">
@@ -1701,17 +1856,33 @@ export default function Game() {
                 <h1 style={{ margin: 0, fontSize: "clamp(28px, 6vw, 48px)", fontWeight: 900, color: "#fff", letterSpacing: 4, animation: "glow-text 2.5s ease-in-out infinite", textTransform: "uppercase" }}>AlifallX</h1>
                 <div className="game-screen__tagline">Catch the falling aliens. Dodge the rocks.</div>
               </div>
-              <button className="play-btn" aria-label="Start game" onClick={() => { window.scrollTo({ top: 0, behavior: "instant" }); const ctx = new (window.AudioContext || window.webkitAudioContext)(); ctx.resume(); audioCtxRef.current = ctx; setGameStarted(true); }}>
-                <div className="play-ring play-ring--1 play-ring--cyan-1" />
-                <div className="play-ring play-ring--2 play-ring--cyan-2" />
-                <div className="play-spin play-spin--cyan" />
-                <div className="play-bg play-bg--dark" />
-                <div className="play-circle play-circle--cyan">
-                  <div className="play-triangle play-triangle--cyan" />
-                </div>
-              </button>
-              <div className="start-cta-click">Click to play</div>
-              <div className="start-cta-tap">Tap to play</div>
+              <div className="start-mode-row">
+                <button className="start-mode-option" aria-label="Play solo" onClick={() => { window.scrollTo({ top: 0, behavior: "instant" }); try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); ctx.resume(); audioCtxRef.current = ctx; } catch(e) {} setGameStarted(true); }}>
+                  <div className="play-btn" style={{ pointerEvents: "none" }}>
+                    <div className="play-ring play-ring--1 play-ring--cyan-1" />
+                    <div className="play-ring play-ring--2 play-ring--cyan-2" />
+                    <div className="play-spin play-spin--cyan" />
+                    <div className="play-bg play-bg--dark" />
+                    <div className="play-circle play-circle--cyan">
+                      <div className="play-triangle play-triangle--cyan" />
+                    </div>
+                  </div>
+                  <div className="start-cta-click">Solo</div>
+                  <div className="start-cta-tap">Solo</div>
+                </button>
+                <button className="start-mode-option" aria-label="Play with a friend online" onClick={() => router.push("/game-room")}>
+                  <div className="play-btn play-btn--multi" style={{ pointerEvents: "none" }}>
+                    <div className="play-ring play-ring--1 play-ring--multi-1" />
+                    <div className="play-ring play-ring--2 play-ring--multi-2" />
+                    <div className="play-spin play-spin--multi" />
+                    <div className="play-bg play-bg--dark" />
+                    <div className="play-circle play-circle--multi">
+                      <span className="play-multi-icon">👥</span>
+                    </div>
+                  </div>
+                  <div className="start-mode-label">2 Players</div>
+                </button>
+              </div>
               <div className="controls-keyboard">
                 <span className="kbd">← → / A / D</span> move &nbsp;·&nbsp; <span className="kbd">Space</span> shoot &nbsp;·&nbsp; <span className="kbd">S</span> shield &nbsp;·&nbsp; <span className="kbd">P / Esc</span> pause<br/>
                 <span className="kbd">1</span> buy bullets 🪙100 &nbsp;·&nbsp; <span className="kbd">2</span> buy shield 🪙70 &nbsp;·&nbsp; <span className="kbd">3</span> buy life 🪙200<br/>
