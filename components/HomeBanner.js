@@ -110,78 +110,17 @@ const HeaderBanner = () => {
   }, []);
 
   return (
-    <div style={{ position: "relative", minHeight: "100vh", overflow: "hidden" }}>
+    <div className="relative min-h-screen overflow-hidden">
       <canvas
         ref={canvasRef}
         aria-hidden="true"
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block" }}
+        className="absolute inset-0 w-full h-full block"
       />
 
-      <style>{`
-        @keyframes float-banner {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-8px); }
-        }
-        @keyframes glow-cyan {
-          0%, 100% { text-shadow: 0 0 20px rgba(100,200,255,0.8), 0 0 40px rgba(100,200,255,0.4); }
-          50% { text-shadow: 0 0 30px rgba(100,200,255,1), 0 0 60px rgba(100,200,255,0.6), 0 0 80px rgba(100,200,255,0.3); }
-        }
-        @keyframes scroll-bob {
-          0%, 100% { transform: translateY(0); opacity: 1; }
-          50% { transform: translateY(8px); opacity: 0.5; }
-        }
-        .banner-btn {
-          position: relative;
-          display: inline-block;
-          padding: 14px 36px;
-          text-transform: uppercase;
-          letter-spacing: 4px;
-          text-decoration: none;
-          font-size: 18px;
-          font-family: Arial, sans-serif;
-          font-weight: bold;
-          overflow: hidden;
-          transition: color 0.2s, background 0.2s;
-          color: #64C8FF;
-        }
-        .banner-btn:hover {
-          color: #050c25;
-          background: #64C8FF;
-          box-shadow: 0 0 12px #64C8FF, 0 0 40px rgba(100,200,255,0.6), 0 0 80px rgba(100,200,255,0.3);
-          transition-delay: 0.7s;
-        }
-        .banner-btn span { position: absolute; display: block; }
-        .banner-btn span:nth-child(1) { top:0; left:-100%; width:100%; height:2px; background:linear-gradient(90deg,transparent,#64C8FF); }
-        .banner-btn:hover span:nth-child(1) { left:100%; transition:0.7s; }
-        .banner-btn span:nth-child(2) { top:-100%; right:0; width:2px; height:100%; background:linear-gradient(180deg,transparent,#64C8FF); }
-        .banner-btn:hover span:nth-child(2) { top:100%; transition:0.7s; transition-delay:0.25s; }
-        .banner-btn span:nth-child(3) { bottom:0; right:-100%; width:100%; height:2px; background:linear-gradient(270deg,transparent,#64C8FF); }
-        .banner-btn:hover span:nth-child(3) { right:100%; transition:0.7s; transition-delay:0.5s; }
-        .banner-btn span:nth-child(4) { bottom:-100%; left:0; width:2px; height:100%; background:linear-gradient(360deg,transparent,#64C8FF); }
-        .banner-btn:hover span:nth-child(4) { bottom:100%; transition:0.7s; transition-delay:0.75s; }
-      `}</style>
-
-      <div style={{
-        position: "relative", zIndex: 10,
-        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-        minHeight: "100vh",
-        padding: "120px 24px 100px",
-        fontFamily: "Arial, sans-serif",
-        textAlign: "center",
-        gap: 36,
-      }}>
-        <div style={{ animation: "float-banner 3s ease-in-out infinite" }}>
-          <div style={{ fontSize: 13, letterSpacing: 6, color: "rgba(100,200,255,0.82)", marginBottom: 14, textTransform: "uppercase" }}>
-            Welcome to
-          </div>
-          <div style={{
-            fontSize: "clamp(20px, 4vw, 40px)",
-            fontWeight: 700,
-            color: "#fff",
-            animation: "glow-cyan 2.5s ease-in-out infinite",
-            lineHeight: 1.5,
-            maxWidth: 720,
-          }}>
+      <div className="banner-content">
+        <div className="banner-float">
+          <div className="banner-subtitle">Welcome to</div>
+          <div className="banner-title">
             <Typewriter
               words={[
                 "Hello there!",
@@ -199,7 +138,7 @@ const HeaderBanner = () => {
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 20, flexWrap: "wrap", justifyContent: "center" }}>
+        <div className="flex flex-wrap gap-5 justify-center">
           <Link className="banner-btn" href="/game">
             <span /><span /><span /><span />Play Game
           </Link>
@@ -208,22 +147,9 @@ const HeaderBanner = () => {
           </Link>
         </div>
 
-        <a href="#aboutgame" aria-label="Scroll down to game information" style={{
-          position: "absolute", bottom: 36, left: "50%", transform: "translateX(-50%)",
-          display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
-          color: "rgba(100,200,255,0.5)", textDecoration: "none",
-        }}>
-          <div style={{
-            width: 26, height: 42, borderRadius: 13,
-            border: "2px solid rgba(100,200,255,0.6)",
-            display: "flex", justifyContent: "center", alignItems: "flex-start",
-            padding: "7px 0",
-          }}>
-            <div style={{
-              width: 4, height: 8, borderRadius: 2,
-              background: "rgba(100,200,255,0.7)",
-              animation: "scroll-bob 1.6s ease-in-out infinite",
-            }} />
+        <a href="#aboutgame" aria-label="Scroll down to game information" className="scroll-indicator">
+          <div className="scroll-mouse">
+            <div className="scroll-ball" />
           </div>
         </a>
       </div>

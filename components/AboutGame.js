@@ -2,10 +2,10 @@ import React from "react";
 
 const AboutGame = () => {
   return (
-    <section id="aboutgame" className="font-roboto py-[60px]" style={{ borderTop: "1px solid rgba(30,107,184,0.15)", color: "#1a1a2e" }}>
+    <section id="aboutgame" className="about-game font-roboto py-[60px]">
       <div>
         <div className="max-w-wrapper px-5 mx-auto py-[20px] max-w-full md:max-w-[65%]">
-          <h2 className="pb-[10px] text-[27px]" style={{ color: "#1e6bb8" }}>
+          <h2 className="section-heading-blue pb-[10px] text-[27px]">
             <b>AlifallX: Don&apos;t Leave Them Behind</b>
           </h2>
           <p className="mt-[10px]">
@@ -21,7 +21,7 @@ const AboutGame = () => {
             flying — every alien saved counts.
           </p>
 
-          <h3 className="py-[10px] text-[20px] mt-[10px]" style={{ color: "#1e6bb8" }}>
+          <h3 className="section-heading-blue py-[10px] text-[20px] mt-[10px]">
             <b>How to Play — Keyboard:</b>
           </h3>
           <ul className="list-disc list-inside pl-[15px]">
@@ -36,7 +36,7 @@ const AboutGame = () => {
             <li>You start with 3 lives and 2 shields — lose all lives and it&apos;s game over</li>
           </ul>
 
-          <h3 className="py-[10px] text-[20px] mt-[10px]" style={{ color: "#1e6bb8" }}>
+          <h3 className="section-heading-blue py-[10px] text-[20px] mt-[10px]">
             <b>How to Play — Mobile:</b>
           </h3>
           <p className="mt-[4px] mb-[8px]">
@@ -50,7 +50,7 @@ const AboutGame = () => {
             <li>Buying bullets, shields, and lives is not available on mobile — earn coins by catching and shooting aliens</li>
           </ul>
 
-          <h3 className="py-[10px] text-[20px] mt-[10px]" style={{ color: "#1e6bb8" }}>
+          <h3 className="section-heading-blue py-[10px] text-[20px] mt-[10px]">
             <b>Things You&apos;ll Encounter:</b>
           </h3>
           <ul className="list-disc list-inside pl-[15px]">
@@ -66,7 +66,7 @@ const AboutGame = () => {
             <li><b>The Last Egg</b> — a giant egg that falls from the sky at level 50; catch it to complete the mission</li>
           </ul>
 
-          <h3 className="py-[10px] text-[20px] mt-[10px]" style={{ color: "#1e6bb8" }}>
+          <h3 className="section-heading-blue py-[10px] text-[20px] mt-[10px]">
             <b>Level Progression:</b>
           </h3>
           <ul className="list-disc list-inside pl-[15px]">
@@ -77,8 +77,8 @@ const AboutGame = () => {
             <li>Each level brings faster rocks, tighter spawns, and new threats</li>
           </ul>
 
-          <h3 className="py-[10px] text-[20px] mt-[10px]" style={{ color: "#1e6bb8" }}>
-            <b>Features:</b>
+          <h3 className="section-heading-blue py-[10px] text-[20px] mt-[10px]">
+             <b>Features:</b>
           </h3>
           <ul className="list-disc list-inside pl-[15px]">
             <li>Dynamic difficulty — speed, spawn rates, and color palettes scale with level</li>

@@ -193,7 +193,6 @@ export default function Header() {
                 aria-expanded={mobileNavExpanded}
                 aria-controls="mobile-nav"
                 className={`${mobileNavExpanded ? "open" : ""} nav-button`}
-                style={{ background: "none", border: "none", padding: 0 }}
                 onClick={() => {
                   setMobileNavExpanded(!mobileNavExpanded);
                   setIsSubmenu(false);

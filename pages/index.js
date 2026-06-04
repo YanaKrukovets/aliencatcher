@@ -31,10 +31,10 @@ export default function Home(props) {
       <div className="headerbanner">
         <HeaderBanner />
       </div>
-      <div style={{ background: "#fff" }}>
+      <div className="bg-white">
         <AboutGame />
       </div>
-      <div style={{ background: "linear-gradient(180deg, #1a0828 0%, #06091c 100%)", color: "#e8f4ff" }}>
+      <div className="contact-wrapper">
         <ContactForm />
       </div>
     </>

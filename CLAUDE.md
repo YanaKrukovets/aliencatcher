@@ -72,11 +72,28 @@ Configured in `.claude/settings.json`:
 - **After editing `locales/en.js`**: reminds to update `fr.js` with matching keys
 
 ## Code Conventions
-- Game loop variables live inside `useEffect` as `let` — do not lift them to React state unless they appear in JSX
-- New visual elements go in the main `draw()` function, new logic in `update()`
-- Keep collision detection functions pure (take coords/sizes, return bool)
-- String copy: landing-page UI text goes through `locales/`; game overlay text (score, level, HUD) lives directly in `pages/game.js`
-- No TypeScript in game files (`.js`) — the project uses TS only for config files
+
+### Styling
+- **No inline styles** — use Tailwind classes or SCSS. `style={{}}` is forbidden except for the two cases below.
+- **Inline style is allowed only when the value is computed at runtime from a JS variable** (e.g. `style={{ paddingTop: NAV_HEIGHT }}`, `style={{ opacity: soundEnabled ? 1 : 0.4 }}`).
+- **Dynamic sizes in Starfield / canvas generators** that come from `Math.random()` may stay inline — those values cannot be expressed in static CSS.
+- Tailwind first for layout utilities (`flex`, `gap`, positioning, spacing). SCSS classes for reusable design tokens (colors, borders, animations) and component-level styles.
+- New SCSS classes go in the relevant file under `styles/components/` or `styles/pages/`.
+- Do not add a second `className` attribute — merge all class names into a single `className` string.
+
+### Code Quality
+- Functions and variables should have clear, descriptive names — avoid single-letter names outside loop counters.
+- Keep JSX readable: one prop per line when a component has more than 3 props.
+- Do not leave commented-out code blocks — delete unused code.
+- Do not add console.log statements to committed code.
+- Keep components focused — if a component is doing too many things, split it.
+
+### Game Loop
+- Game loop variables live inside `useEffect` as `let` — do not lift them to React state unless they appear in JSX.
+- New visual elements go in the main `draw()` function, new logic in `update()`.
+- Keep collision detection functions pure (take coords/sizes, return bool).
+- String copy: landing-page UI text goes through `locales/`; game overlay text (score, level, HUD) lives directly in `pages/game.js`.
+- No TypeScript in game files (`.js`) — the project uses TS only for config files.
 
 ## Running & Testing
 ```bash

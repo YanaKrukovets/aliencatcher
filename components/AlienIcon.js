@@ -79,5 +79,5 @@ export default function AlienIcon({ color = "#7CFC00" }) {
     return () => cancelAnimationFrame(animId);
   }, [color]);
 
-  return <canvas ref={ref} width={30} height={36} style={{ display: "block", width: 20, height: 24 }} />;
+  return <canvas ref={ref} width={30} height={36} className="block w-[20px] h-[24px]" />;
 }

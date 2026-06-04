@@ -19,7 +19,7 @@ const About = () => {
             />
           </div>
           <div className="max-w-[65%] md:max-w-full md:mt-[10px]">
-            <h3 className="pb-[10px] text-[20px]" style={{ color: "#64C8FF" }}>
+            <h3 className="section-heading-cyan pb-[10px] text-[20px]">
               <b>Who am I?</b>
             </h3>
             <p>
@@ -28,7 +28,7 @@ const About = () => {
               bringing ideas to life in the browser.
             </p>
 
-            <h3 className="pb-[10px] pt-[20px] text-[20px]" style={{ color: "#64C8FF" }}>
+            <h3 className="section-heading-cyan pb-[10px] pt-[20px] text-[20px]">
               <b>Skills</b>
             </h3>
             <p>
@@ -36,7 +36,7 @@ const About = () => {
               Bootstrap, Wordpress, Tilda, Sanity, Liquid script, PHP, mySQL
             </p>
 
-            <h3 className="pb-[10px] pt-[20px] text-[20px]" style={{ color: "#64C8FF" }}>
+            <h3 className="section-heading-cyan pb-[10px] pt-[20px] text-[20px]">
               <b>Experience</b>
             </h3>
             <p>
@@ -76,7 +76,7 @@ const About = () => {
               Dnipro, Ukraine
             </p>
 
-            <h3 className="pb-[10px] pt-[20px] text-[20px]" style={{ color: "#64C8FF" }}>
+            <h3 className="section-heading-cyan pb-[10px] pt-[20px] text-[20px]">
               <b>Hobbies</b>
             </h3>
             <p>

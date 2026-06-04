@@ -39,19 +39,6 @@ function BuyButton({ onClick, disabled, label, cost }) {
       tabIndex={-1}
       className="hud-buy"
       title={`${label} — costs 🪙${cost}`}
-      style={{
-        background: disabled ? "transparent" : "rgba(255,255,255,0.08)",
-        color: disabled ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.55)",
-        border: `1px solid ${disabled ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.18)"}`,
-        borderRadius: 4,
-        padding: "1px 6px",
-        fontSize: 10,
-        fontWeight: "bold",
-        cursor: disabled ? "default" : "pointer",
-        letterSpacing: 0.5,
-        lineHeight: "16px",
-        whiteSpace: "nowrap",
-      }}
     >
       {label}
     </button>
@@ -157,7 +144,7 @@ function GameStarfield() {
   }, []);
 
   return (
-    <canvas ref={canvasRef} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 0 }} />
+    <canvas ref={canvasRef} className="game-starfield-canvas" />
   );
 }
 
@@ -178,6 +165,13 @@ export default function Game() {
   const [levelUpBanner, setLevelUpBanner] = useState(null);
   const [isMissionComplete, setIsMissionComplete] = useState(false);
   const [eggWasShot, setEggWasShot] = useState(false);
+  const [coinShake, setCoinShake] = useState(false);
+  const triggerCoinShake = () => { setCoinShake(false); requestAnimationFrame(() => setCoinShake(true)); setTimeout(() => setCoinShake(false), 400); };
+  const handleMobileBuy = (ref, cost) => {
+    if (!isTouchDevice || !gameStarted || isGameOver) return;
+    if (coins >= cost) { ref.current = true; }
+    else { triggerCoinShake(); }
+  };
   const buyBulletsRef = useRef(false);
   const buyLivesRef = useRef(false);
   const buyShieldsRef = useRef(false);
@@ -309,6 +303,10 @@ export default function Game() {
     let bombAliens = [];
     let ufo = null;
     let ufoTimer = 0;
+    let santaFrames = 0;
+    let santaX = 0;
+    let santaY = 0;
+    let ufoExplosionRing = null;
     let coinRainFrames = 0;
     let coinRainSpawnTimer = 0;
     let coinRainCoinsTimer = 0;
@@ -336,7 +334,7 @@ export default function Game() {
     const {
       playShoot, playCatch, playHit, playExplosion,
       playMeteorExplosion, playMeteorImpact, playMeteorStormWarning,
-      playLevelUp, playRockHit, playGameOver, playWin,
+      playLevelUp, playRockHit, playGameOver, playWin, playHoHoHo,
     } = createSounds(audioCtx, soundEnabledRef);
 
     // ---- BACKGROUND MUSIC ----
@@ -513,6 +511,10 @@ export default function Game() {
       get coinRainFrames()     { return coinRainFrames; },
       get shipImgLoaded()      { return shipImgLoaded; },
       get ufo()                { return ufo; },
+      get ufoExplosionRing()   { return ufoExplosionRing; },
+      get santaFrames()        { return santaFrames; },
+      get santaX()             { return santaX; },
+      get santaY()             { return santaY; },
       get gravityWell()        { return gravityWell; },
       get lastEgg()            { return lastEgg; },
       get spotlightAlien()     { return spotlightAlien; },
@@ -744,9 +746,14 @@ export default function Game() {
                 p.size = 3 + Math.random() * 5;
                 particles.push(p);
               }
-              coinsVal += 300;
+              coinsVal += 400;
               setCoins(coinsVal);
-              floatingTexts.push({ x: ufoCx, y: ufoCy - 20, text: "🛸 UFO DOWN! +300", alpha: 1, vy: 1.8, color: "#44CCFF" });
+              floatingTexts.push({ x: ufoCx, y: ufoCy - 20, text: "🛸 UFO DOWN! +400 🪙", alpha: 1, vy: 1.8, color: "#44CCFF" });
+              santaFrames = 300;
+              santaX = ufoCx;
+              santaY = ufoCy;
+              ufoExplosionRing = { x: ufoCx, y: ufoCy, radius: 10, maxRadius: 220, alpha: 1 };
+              playHoHoHo();
               ufo = null;
             }
           }
@@ -1031,6 +1038,12 @@ export default function Game() {
         if (ufo.isOffScreen()) ufo = null;
       }
 
+      if (ufoExplosionRing) {
+        ufoExplosionRing.radius += 14;
+        ufoExplosionRing.alpha = Math.max(0, 1 - ufoExplosionRing.radius / ufoExplosionRing.maxRadius);
+        if (ufoExplosionRing.alpha <= 0) ufoExplosionRing = null;
+      }
+      if (santaFrames > 0) santaFrames--;
 
       gravityWellTimer++;
       if (levelVal >= 35 && !gravityWell && gravityWellTimer >= 900) {
@@ -1420,11 +1433,21 @@ export default function Game() {
           0%, 100% { box-shadow: 0 0 0px rgba(255,160,0,0); border-color: rgba(180,100,255,0.3); }
           50%       { box-shadow: 0 0 12px rgba(255,160,0,0.85); border-color: rgba(255,160,0,0.9); }
         }
+        @keyframes coin-shake {
+          0%   { transform: translateX(0); color: #FFD700; }
+          20%  { transform: translateX(-5px); color: #ff4444; }
+          40%  { transform: translateX(5px); color: #ff4444; }
+          60%  { transform: translateX(-4px); color: #ff6666; }
+          80%  { transform: translateX(4px); color: #ff6666; }
+          100% { transform: translateX(0); color: #FFD700; }
+        }
+        .coin-shake { animation: coin-shake 0.4s ease; }
         .hud-buy { display: inline-flex; }
         .controls-touch { display: none; }
         .start-cta-tap { display: none; }
         @media (max-width: 500px) {
           .hud-buy { display: none !important; }
+          .hud-ammo-group, .hud-lives { cursor: pointer; padding: 4px 6px; border-radius: 8px; }
           .hud-sep { display: none !important; }
           .hud-lvl-label { display: none !important; }
           .hud-right { gap: 4px !important; padding: 0 !important; }
@@ -1440,46 +1463,28 @@ export default function Game() {
         }
       `}</style>
 
-      <div style={{
-        display: "flex", flexDirection: "column",
-        height: "100dvh", paddingTop: gameStarted && !isGameOver ? 0 : NAV_HEIGHT,
-        boxSizing: "border-box", overflow: "hidden",
-        alignItems: "center", background: "#05071a",
-        position: "relative",
-      }}>
+      <div className="game-container" style={{ paddingTop: gameStarted && !isGameOver ? 0 : NAV_HEIGHT }}>
       <GameStarfield />
-      <div style={{
-        display: "flex", flexDirection: "column",
-        width: "100%", maxWidth: GAME_MAX_WIDTH,
-        flex: 1, overflow: "hidden",
-        position: "relative", zIndex: 1,
-      }}>
+      <div className="game-inner" style={{ maxWidth: GAME_MAX_WIDTH }}>
         {/* HUD Bar */}
-        <div className="hud-bar" style={{
-          height: HUD_HEIGHT,
-          background: "rgba(5,7,26,0.97)",
-          borderBottom: "1px solid rgba(100,200,255,0.12)",
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          flexShrink: 0,
-          userSelect: "none", fontFamily: "'Arial', sans-serif", padding: "0 14px",
-        }}>
+        <div className="hud-bar" style={{ height: HUD_HEIGHT }}>
 
           {/* Left: Score + Level */}
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div className="hud-left">
+            <div className="hud-score-group">
               <AlienIcon />
-              <span className="hud-score" style={{ fontSize: 26, fontWeight: 900, color: "#fff", letterSpacing: 1, lineHeight: 1 }}>{score}</span>
+              <span className="hud-score">{score}</span>
             </div>
-            <div style={{ width: 1, height: 22, background: "rgba(255,255,255,0.1)" }} />
-            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <span className="hud-lvl-label" style={{ fontSize: 10, color: "rgba(255,215,0,0.5)", letterSpacing: 2, textTransform: "uppercase" }}>LVL</span>
-              <span className="hud-level" style={{ fontSize: 20, fontWeight: 700, color: "#FFD700", lineHeight: 1 }}>{level}</span>
+            <div className="hud-sep" />
+            <div className="hud-level-group">
+              <span className="hud-lvl-label">LVL</span>
+              <span className="hud-level">{level}</span>
             </div>
           </div>
 
           {/* Center: Lives */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, animation: lifeGained ? "hud-life-gain 0.8s ease-out" : lives <= 1 ? "hud-danger 0.7s ease-in-out infinite" : "none", borderRadius: 6, padding: "3px 8px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <div className="hud-lives" style={{ animation: lifeGained ? "hud-life-gain 0.8s ease-out" : lives <= 1 ? "hud-danger 0.7s ease-in-out infinite" : "none" }} onClick={() => handleMobileBuy(buyLivesRef, 200)}>
+            <div className="hud-hearts">
               {Array.from({ length: Math.min(Math.max(lives, 3), 5) }).map((_, i) => (
                 <HeartIcon
                   key={i}
@@ -1488,37 +1493,37 @@ export default function Game() {
                 />
               ))}
               {lives > 5 && (
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#FF6688", lineHeight: 1 }}>+{lives - 5}</span>
+                <span className="hud-extra-lives">+{lives - 5}</span>
               )}
             </div>
             <BuyButton onClick={() => { buyLivesRef.current = true; }} disabled={coins < 200} label="+1 🪙200" cost={200} />
           </div>
 
           {/* Right: Coins, Bullets, Shields, Mute */}
-          <div className="hud-right" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div className="hud-right">
             {/* Coins */}
-            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <span style={{ fontSize: 14 }}>🪙</span>
-              <span className="hud-coin-val" style={{ fontSize: 17, fontWeight: 700, color: "#FFD700", lineHeight: 1 }}>{coins}</span>
+            <div className="hud-coins">
+              <span>🪙</span>
+              <span className={`hud-coin-val${coinShake ? " coin-shake" : ""}`}>{coins}</span>
             </div>
 
-            <div className="hud-sep" style={{ width: 1, height: 20, background: "rgba(255,255,255,0.1)" }} />
+            <div className="hud-sep" />
 
             {/* Bullets */}
-            <div style={{ display: "flex", alignItems: "center", gap: 5, animation: bullets < 5 ? "hud-warn 0.9s ease-in-out infinite" : "none", borderRadius: 5, padding: "2px 4px" }}>
-              <span style={{ fontSize: 14 }}>🔫</span>
-              <span className="hud-ammo-val" style={{ fontSize: 17, fontWeight: 700, color: bullets === 0 ? "#ff4444" : bullets < 5 ? "#ffcc66" : "#fff", lineHeight: 1 }}>{bullets}</span>
+            <div className="hud-ammo-group" style={{ animation: bullets < 5 ? "hud-warn 0.9s ease-in-out infinite" : "none" }} onClick={() => handleMobileBuy(buyBulletsRef, 100)}>
+              <span>🔫</span>
+              <span className="hud-ammo-val" style={{ color: bullets === 0 ? "#ff4444" : bullets < 5 ? "#ffcc66" : "#fff" }}>{bullets}</span>
               <BuyButton onClick={() => { buyBulletsRef.current = true; }} disabled={coins < 100} label="+30 🪙100" cost={100} />
             </div>
 
             {/* Shields */}
-            <div style={{ display: "flex", alignItems: "center", gap: 5, animation: shields === 0 ? "hud-warn 0.9s ease-in-out infinite" : "none", borderRadius: 5, padding: "2px 4px" }}>
-              <span style={{ fontSize: 14 }}>🛡️</span>
-              <span className="hud-ammo-val" style={{ fontSize: 17, fontWeight: 700, color: shields === 0 ? "#ff4444" : "#fff", lineHeight: 1 }}>{shields}</span>
+            <div className="hud-ammo-group" style={{ animation: shields === 0 ? "hud-warn 0.9s ease-in-out infinite" : "none" }} onClick={() => handleMobileBuy(buyShieldsRef, 70)}>
+              <span>🛡️</span>
+              <span className="hud-ammo-val" style={{ color: shields === 0 ? "#ff4444" : "#fff" }}>{shields}</span>
               <BuyButton onClick={() => { buyShieldsRef.current = true; }} disabled={coins < 70} label="+1 🪙70" cost={70} />
             </div>
 
-            <div className="hud-sep" style={{ width: 1, height: 20, background: "rgba(255,255,255,0.1)" }} />
+            <div className="hud-sep" />
 
             {/* Pause */}
             <button
@@ -1529,7 +1534,7 @@ export default function Game() {
               onKeyDown={(e) => e.preventDefault()}
               tabIndex={-1}
               title={isPaused ? "Resume (P)" : "Pause (P)"}
-              style={{ background: "transparent", border: "none", borderRadius: 6, padding: "4px 6px", cursor: "pointer", fontSize: 17, lineHeight: 1, color: "rgba(255,255,255,0.6)" }}
+              className="hud-ctrl-btn"
             >
               {isPaused ? "▶️" : "⏸️"}
             </button>
@@ -1547,7 +1552,8 @@ export default function Game() {
               onKeyDown={(e) => e.preventDefault()}
               tabIndex={-1}
               title={soundEnabled ? "Mute sounds" : "Unmute sounds"}
-              style={{ background: "transparent", border: "none", borderRadius: 6, padding: "4px 6px", cursor: "pointer", fontSize: 17, lineHeight: 1, color: "rgba(255,255,255,0.6)", opacity: soundEnabled ? 1 : 0.4 }}
+              className="hud-ctrl-btn"
+              style={{ opacity: soundEnabled ? 1 : 0.4 }}
             >
               {soundEnabled ? "🔊" : "🔇"}
             </button>
@@ -1555,12 +1561,12 @@ export default function Game() {
         </div>
 
         {/* Game Canvas */}
-        <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
-          <canvas ref={canvasRef} style={{ display: "block", width: "100%", height: "100%" }} />
+        <div className="game-canvas-area">
+          <canvas ref={canvasRef} className="block w-full h-full" />
 
           {/* Touch Controls Overlay */}
           {isTouchDevice && gameStarted && !isGameOver && !isMissionComplete && countdown === null && (
-            <div style={{ position: "absolute", bottom: "calc(20px + env(safe-area-inset-bottom, 0px))", left: 0, right: 0, display: "flex", justifyContent: "space-between", alignItems: "flex-end", padding: "0 20px", pointerEvents: "none", zIndex: 10 }}>
+            <div className="touch-controls">
               <button
                 onPointerDown={(e) => { e.preventDefault(); touchControlsRef.current.moveLeft?.(true); }}
                 onPointerUp={(e) => { e.preventDefault(); touchControlsRef.current.moveLeft?.(false); }}
@@ -1569,7 +1575,7 @@ export default function Game() {
                 onContextMenu={(e) => e.preventDefault()}
                 style={{ ...touchBtnStyle, pointerEvents: "auto" }}
               >←</button>
-              <div style={{ display: "flex", gap: 16, pointerEvents: "auto" }}>
+              <div className="touch-controls-center">
                 <button
                   onPointerDown={(e) => { e.preventDefault(); touchControlsRef.current.shield?.(); }}
                   onContextMenu={(e) => e.preventDefault()}
@@ -1597,35 +1603,35 @@ export default function Game() {
 
           {/* Start Screen */}
           {!gameStarted && !isGameOver && (
-            <div style={{ position: "absolute", inset: 0, zIndex: 20, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "linear-gradient(180deg, #070b1f 0%, #12173a 50%, #1a0a2e 100%)", fontFamily: "'Arial', sans-serif", gap: 32, padding: "0 24px" }}>
-              <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
+            <div className="game-screen game-screen--dark" style={{ gap: 32 }}>
+              <div className="game-screen__backdrop">
                 {Array.from({ length: 40 }).map((_, i) => (
                   <div key={i} style={{ position: "absolute", left: `${Math.sin(i * 2.5) * 50 + 50}%`, top: `${Math.cos(i * 1.7) * 50 + 50}%`, width: i % 5 === 0 ? 3 : 2, height: i % 5 === 0 ? 3 : 2, borderRadius: "50%", background: "#fff", opacity: 0.3 + (i % 4) * 0.15 }} />
                 ))}
               </div>
-              <div style={{ animation: "float-title 3s ease-in-out infinite", textAlign: "center" }}>
+              <div className="game-screen__float-title">
                 <div style={{ fontSize: 14, letterSpacing: 6, color: "rgba(100,200,255,0.7)", marginBottom: 8, textTransform: "uppercase" }}>Welcome to</div>
                 <h1 style={{ margin: 0, fontSize: "clamp(28px, 6vw, 48px)", fontWeight: 900, color: "#fff", letterSpacing: 4, animation: "glow-text 2.5s ease-in-out infinite", textTransform: "uppercase" }}>AlifallX</h1>
-                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginTop: 8, letterSpacing: 2 }}>Catch the falling aliens. Dodge the rocks.</div>
+                <div className="game-screen__tagline">Catch the falling aliens. Dodge the rocks.</div>
               </div>
-              <button className="play-btn" onClick={() => { window.scrollTo({ top: 0, behavior: "instant" }); const ctx = new (window.AudioContext || window.webkitAudioContext)(); ctx.resume(); audioCtxRef.current = ctx; setGameStarted(true); }} style={{ background: "none", border: "none", cursor: "pointer", position: "relative", padding: 0 }}>
-                <div style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "2px solid rgba(100,200,255,0.6)", animation: "pulse-ring 1.8s ease-out infinite" }} />
-                <div style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "2px solid rgba(100,200,255,0.4)", animation: "pulse-ring2 1.8s ease-out infinite 0.4s" }} />
-                <div style={{ position: "absolute", inset: -4, borderRadius: "50%", background: "conic-gradient(from 0deg, rgba(100,200,255,0.8), rgba(180,100,255,0.8), rgba(100,200,255,0), rgba(100,200,255,0.8))", animation: "spin-border 2s linear infinite" }} />
-                <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "#0d1230", margin: 2 }} />
-                <div className="play-circle" style={{ width: 90, height: 90, borderRadius: "50%", background: "rgba(100,200,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
-                  <div className="play-triangle" style={{ width: 0, height: 0, borderTop: "18px solid transparent", borderBottom: "18px solid transparent", borderLeft: "30px solid rgba(100,200,255,0.9)", marginLeft: 8 }} />
+              <button className="play-btn" onClick={() => { window.scrollTo({ top: 0, behavior: "instant" }); const ctx = new (window.AudioContext || window.webkitAudioContext)(); ctx.resume(); audioCtxRef.current = ctx; setGameStarted(true); }}>
+                <div className="play-ring play-ring--1 play-ring--cyan-1" />
+                <div className="play-ring play-ring--2 play-ring--cyan-2" />
+                <div className="play-spin play-spin--cyan" />
+                <div className="play-bg play-bg--dark" />
+                <div className="play-circle play-circle--cyan">
+                  <div className="play-triangle play-triangle--cyan" />
                 </div>
               </button>
-              <div className="start-cta-click" style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", letterSpacing: 3, textTransform: "uppercase" }}>Click to play</div>
-              <div className="start-cta-tap" style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", letterSpacing: 3, textTransform: "uppercase" }}>Tap to play</div>
-              <div className="controls-keyboard" style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", letterSpacing: 1, textAlign: "center", lineHeight: 2 }}>
-                <span style={{ color: "rgba(255,255,255,0.45)" }}>← → / A / D</span> move &nbsp;·&nbsp; <span style={{ color: "rgba(255,255,255,0.45)" }}>Space</span> shoot &nbsp;·&nbsp; <span style={{ color: "rgba(255,255,255,0.45)" }}>S</span> shield &nbsp;·&nbsp; <span style={{ color: "rgba(255,255,255,0.45)" }}>P / Esc</span> pause<br/>
-                <span style={{ color: "rgba(255,255,255,0.45)" }}>1</span> buy bullets 🪙100 &nbsp;·&nbsp; <span style={{ color: "rgba(255,255,255,0.45)" }}>2</span> buy shield 🪙70 &nbsp;·&nbsp; <span style={{ color: "rgba(255,255,255,0.45)" }}>3</span> buy life 🪙200<br/>
+              <div className="start-cta-click">Click to play</div>
+              <div className="start-cta-tap">Tap to play</div>
+              <div className="controls-keyboard">
+                <span className="kbd">← → / A / D</span> move &nbsp;·&nbsp; <span className="kbd">Space</span> shoot &nbsp;·&nbsp; <span className="kbd">S</span> shield &nbsp;·&nbsp; <span className="kbd">P / Esc</span> pause<br/>
+                <span className="kbd">1</span> buy bullets 🪙100 &nbsp;·&nbsp; <span className="kbd">2</span> buy shield 🪙70 &nbsp;·&nbsp; <span className="kbd">3</span> buy life 🪙200<br/>
                 ❤️ catch Heart Alien (+1 life, lv4+) &nbsp;·&nbsp; 🛡️ Shield Alien (+1 shield, lv3+) &nbsp;·&nbsp; 💣 avoid Bomb Alien (−1 life, lv7+)
               </div>
-              <div className="controls-touch" style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", letterSpacing: 1, textAlign: "center", lineHeight: 2 }}>
-                <span style={{ color: "rgba(255,255,255,0.45)" }}>← →</span> buttons to move &nbsp;·&nbsp; <span style={{ color: "rgba(255,255,255,0.45)" }}>🔫 hold</span> to fire &nbsp;·&nbsp; <span style={{ color: "rgba(255,255,255,0.45)" }}>🛡</span> to shield<br/>
+              <div className="controls-touch">
+                <span className="kbd">← →</span> buttons to move &nbsp;·&nbsp; <span className="kbd">🔫 hold</span> to fire &nbsp;·&nbsp; <span className="kbd">🛡</span> to shield<br/>
                 ❤️ catch Heart Alien (+1 life) &nbsp;·&nbsp; 🛡️ Shield Alien (+1 shield) &nbsp;·&nbsp; 💣 avoid Bomb Alien
               </div>
             </div>
@@ -1633,7 +1639,7 @@ export default function Game() {
 
           {/* Level Up Banner */}
           {levelUpBanner !== null && (
-            <div style={{ position: "absolute", inset: 0, zIndex: 14, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+            <div className="game-overlay" style={{ zIndex: 14 }}>
               <div key={levelUpBanner} style={{ textAlign: "center", animation: "level-up-anim 1.8s ease forwards" }}>
                 <div style={{ fontSize: 15, letterSpacing: 8, textTransform: "uppercase", color: getLevelColor(levelUpBanner), fontFamily: "'Arial', sans-serif", fontWeight: 700, textShadow: `0 0 24px ${getLevelColor(levelUpBanner)}`, marginBottom: 2, animation: "level-up-sub 1.8s ease forwards" }}>Level Up!</div>
                 <div style={{ fontSize: 108, fontWeight: 900, fontFamily: "'Arial', sans-serif", color: "#fff", lineHeight: 1, textShadow: `0 0 40px ${getLevelColor(levelUpBanner)}, 0 0 90px ${getLevelColor(levelUpBanner)}88` }}>{levelUpBanner}</div>
@@ -1643,7 +1649,7 @@ export default function Game() {
 
           {/* Countdown overlay */}
           {countdown !== null && (
-            <div style={{ position: "absolute", inset: 0, zIndex: 15, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+            <div className="game-overlay" style={{ zIndex: 15 }}>
               <div key={countdown} style={{ fontSize: countdown === 0 ? 72 : 110, fontWeight: 900, color: countdown === 0 ? "#7CFC00" : "#fff", fontFamily: "'Arial', sans-serif", letterSpacing: countdown === 0 ? 6 : 0, textShadow: countdown === 0 ? "0 0 30px rgba(124,252,0,0.8), 0 0 60px rgba(124,252,0,0.4)" : "0 0 30px rgba(100,200,255,0.8), 0 0 60px rgba(100,200,255,0.4)", animation: countdown === 0 ? "go-pop 0.7s ease forwards" : "countdown-pop 0.5s ease forwards" }}>
                 {countdown === 0 ? "GO!" : countdown}
               </div>
@@ -1652,83 +1658,83 @@ export default function Game() {
 
           {/* Game Over overlay */}
           {isGameOver && (
-            <div style={{ position: "absolute", inset: 0, zIndex: 20, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "linear-gradient(180deg, #070b1f 0%, #12173a 50%, #1a0a2e 100%)", fontFamily: "'Arial', sans-serif", gap: 28 }}>
-              <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
+            <div className="game-screen game-screen--dark" style={{ gap: 28 }}>
+              <div className="game-screen__backdrop">
                 {Array.from({ length: 40 }).map((_, i) => (
                   <div key={i} style={{ position: "absolute", left: `${Math.sin(i * 2.5) * 50 + 50}%`, top: `${Math.cos(i * 1.7) * 50 + 50}%`, width: i % 5 === 0 ? 3 : 2, height: i % 5 === 0 ? 3 : 2, borderRadius: "50%", background: "#fff", opacity: 0.3 + (i % 4) * 0.15 }} />
                 ))}
               </div>
-              <div style={{ animation: "float-title 3s ease-in-out infinite", textAlign: "center" }}>
+              <div className="game-screen__float-title">
                 <div style={{ fontSize: 13, letterSpacing: 6, color: "rgba(255,120,120,0.75)", marginBottom: 8, textTransform: "uppercase" }}>{eggWasShot ? "You shot the egg" : "Mission failed"}</div>
                 <h1 style={{ margin: 0, fontSize: "clamp(28px, 6vw, 48px)", fontWeight: 900, color: "#fff", letterSpacing: 4, textTransform: "uppercase", textShadow: eggWasShot ? "0 0 24px rgba(255,80,0,0.9), 0 0 50px rgba(255,80,0,0.45)" : "0 0 24px rgba(100,200,255,0.9), 0 0 50px rgba(100,200,255,0.45)", animation: "glow-text 2.5s ease-in-out infinite" }}>{eggWasShot ? "Cracked!" : "Game Over"}</h1>
                 {eggWasShot && (<div style={{ fontSize: 14, color: "rgba(255,180,80,0.9)", marginTop: 10, letterSpacing: 1 }}>🥚 The Last Egg is gone forever...</div>)}
               </div>
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, background: "rgba(100,200,255,0.08)", borderRadius: 10, padding: "10px 18px", border: "1px solid rgba(100,200,255,0.2)" }}>
+              <div className="game-stat-row">
+                <div className="game-stat-box game-stat-box--cyan">
                   <AlienIcon />
-                  <span style={{ fontSize: 11, color: "rgba(100,200,255,0.7)", letterSpacing: 2, textTransform: "uppercase" }}>Caught</span>
-                  <span style={{ fontSize: 28, fontWeight: 900, color: "#fff", lineHeight: 1 }}>{score}</span>
+                  <span className="game-stat-label-cyan">Caught</span>
+                  <span className="game-stat-value">{score}</span>
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, background: "rgba(255,215,0,0.08)", borderRadius: 10, padding: "10px 18px", border: "1px solid rgba(255,215,0,0.2)" }}>
-                  <span style={{ fontSize: 22 }}>🪙</span>
-                  <span style={{ fontSize: 11, color: "rgba(255,215,0,0.7)", letterSpacing: 2, textTransform: "uppercase" }}>Coins</span>
-                  <span style={{ fontSize: 28, fontWeight: 900, color: "#fff", lineHeight: 1 }}>{coins}</span>
+                <div className="game-stat-box game-stat-box--gold">
+                  <span className="game-stat-emoji">🪙</span>
+                  <span className="game-stat-label-gold">Coins</span>
+                  <span className="game-stat-value">{coins}</span>
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, background: "rgba(255,215,0,0.06)", borderRadius: 10, padding: "10px 18px", border: "1px solid rgba(255,215,0,0.15)" }}>
-                  <span style={{ fontSize: 22 }}>⭐</span>
-                  <span style={{ fontSize: 11, color: "rgba(255,215,0,0.7)", letterSpacing: 2, textTransform: "uppercase" }}>Level</span>
-                  <span style={{ fontSize: 28, fontWeight: 900, color: "#fff", lineHeight: 1 }}>{level}</span>
+                <div className="game-stat-box game-stat-box--gold-dim">
+                  <span className="game-stat-emoji">⭐</span>
+                  <span className="game-stat-label-gold">Level</span>
+                  <span className="game-stat-value">{level}</span>
                 </div>
               </div>
-              <button className="play-btn" onClick={handleRestart} style={{ background: "none", border: "none", cursor: "pointer", position: "relative", padding: 0 }}>
-                <div style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "2px solid rgba(100,200,255,0.6)", animation: "pulse-ring 1.8s ease-out infinite" }} />
-                <div style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "2px solid rgba(100,200,255,0.4)", animation: "pulse-ring2 1.8s ease-out infinite 0.4s" }} />
-                <div style={{ position: "absolute", inset: -4, borderRadius: "50%", background: "conic-gradient(from 0deg, rgba(100,200,255,0.8), rgba(180,100,255,0.8), rgba(100,200,255,0), rgba(100,200,255,0.8))", animation: "spin-border 2s linear infinite" }} />
-                <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "#0d1230", margin: 2 }} />
-                <div className="play-circle" style={{ width: 90, height: 90, borderRadius: "50%", background: "rgba(100,200,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
-                  <div className="play-triangle" style={{ width: 0, height: 0, borderTop: "18px solid transparent", borderBottom: "18px solid transparent", borderLeft: "30px solid rgba(100,200,255,0.9)", marginLeft: 8 }} />
+              <button className="play-btn" onClick={handleRestart}>
+                <div className="play-ring play-ring--1 play-ring--cyan-1" />
+                <div className="play-ring play-ring--2 play-ring--cyan-2" />
+                <div className="play-spin play-spin--cyan" />
+                <div className="play-bg play-bg--dark" />
+                <div className="play-circle play-circle--cyan">
+                  <div className="play-triangle play-triangle--cyan" />
                 </div>
               </button>
-              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", letterSpacing: 3, textTransform: "uppercase" }}>Play again</div>
+              <div className="game-screen__cta">Play again</div>
             </div>
           )}
 
           {isMissionComplete && (
-            <div style={{ position: "absolute", inset: 0, zIndex: 20, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "linear-gradient(180deg, #030d08 0%, #071a10 45%, #0a1f08 100%)", fontFamily: "'Arial', sans-serif", gap: 26 }}>
-              <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
+            <div className="game-screen game-screen--green" style={{ gap: 26 }}>
+              <div className="game-screen__backdrop">
                 {Array.from({ length: 50 }).map((_, i) => (
                   <div key={i} style={{ position: "absolute", left: `${Math.sin(i * 2.3) * 50 + 50}%`, top: `${Math.cos(i * 1.9) * 50 + 50}%`, width: i % 4 === 0 ? 3 : 2, height: i % 4 === 0 ? 3 : 2, borderRadius: "50%", background: i % 5 === 0 ? "#FFD700" : "#fff", opacity: 0.25 + (i % 5) * 0.12 }} />
                 ))}
               </div>
               <div style={{ fontSize: 72, animation: "float-title 3s ease-in-out infinite", filter: "drop-shadow(0 0 24px rgba(255,210,60,0.9)) drop-shadow(0 0 48px rgba(100,255,160,0.5))" }}>🥚</div>
-              <div style={{ textAlign: "center", animation: "float-title 3.5s ease-in-out infinite 0.3s" }}>
+              <div className="game-screen__float-title--delayed">
                 <div style={{ fontSize: 12, letterSpacing: 6, color: "rgba(100,255,160,0.75)", marginBottom: 8, textTransform: "uppercase" }}>All aliens safe</div>
                 <h1 style={{ margin: 0, fontSize: "clamp(26px, 5.5vw, 44px)", fontWeight: 900, color: "#fff", letterSpacing: 4, textTransform: "uppercase", textShadow: "0 0 24px rgba(100,255,160,0.9), 0 0 50px rgba(255,210,60,0.5)" }}>Mission Complete</h1>
                 <div style={{ fontSize: 14, color: "rgba(200,255,220,0.65)", marginTop: 10, letterSpacing: 1 }}>The last egg is safe. The species will survive.</div>
               </div>
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
+              <div className="game-stat-row">
                 {[
                   { icon: "👽", label: "Caught", value: score,  color: "rgba(100,255,160,0.1)", border: "rgba(100,255,160,0.25)", text: "rgba(100,255,160,0.8)" },
                   { icon: "🪙", label: "Coins",  value: coins,  color: "rgba(255,215,0,0.1)",   border: "rgba(255,215,0,0.25)",   text: "rgba(255,215,0,0.8)" },
                   { icon: "⭐", label: "Level",  value: level,  color: "rgba(255,215,0,0.08)",  border: "rgba(255,215,0,0.2)",    text: "rgba(255,215,0,0.7)" },
                 ].map(({ icon, label, value, color, border, text }) => (
-                  <div key={label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, background: color, borderRadius: 10, padding: "10px 20px", border: `1px solid ${border}` }}>
-                    <span style={{ fontSize: 22 }}>{icon}</span>
+                  <div key={label} className="game-stat-box" style={{ background: color, border: `1px solid ${border}`, padding: "10px 20px" }}>
+                    <span className="game-stat-emoji">{icon}</span>
                     <span style={{ fontSize: 11, color: text, letterSpacing: 2, textTransform: "uppercase" }}>{label}</span>
-                    <span style={{ fontSize: 28, fontWeight: 900, color: "#fff", lineHeight: 1 }}>{value}</span>
+                    <span className="game-stat-value">{value}</span>
                   </div>
                 ))}
               </div>
-              <button className="play-btn" onClick={handleRestart} style={{ background: "none", border: "none", cursor: "pointer", position: "relative", padding: 0 }}>
-                <div style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "2px solid rgba(100,255,160,0.6)", animation: "pulse-ring 1.8s ease-out infinite" }} />
-                <div style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "2px solid rgba(100,255,160,0.4)", animation: "pulse-ring2 1.8s ease-out infinite 0.4s" }} />
-                <div style={{ position: "absolute", inset: -4, borderRadius: "50%", background: "conic-gradient(from 0deg, rgba(100,255,160,0.8), rgba(255,210,60,0.8), rgba(100,255,160,0), rgba(100,255,160,0.8))", animation: "spin-border 2s linear infinite" }} />
-                <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "#030d08", margin: 2 }} />
-                <div className="play-circle" style={{ width: 90, height: 90, borderRadius: "50%", background: "rgba(100,255,160,0.12)", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
-                  <div className="play-triangle" style={{ width: 0, height: 0, borderTop: "18px solid transparent", borderBottom: "18px solid transparent", borderLeft: "30px solid rgba(100,255,160,0.9)", marginLeft: 8 }} />
+              <button className="play-btn" onClick={handleRestart}>
+                <div className="play-ring play-ring--1 play-ring--green-1" />
+                <div className="play-ring play-ring--2 play-ring--green-2" />
+                <div className="play-spin play-spin--green" />
+                <div className="play-bg play-bg--green" />
+                <div className="play-circle play-circle--green">
+                  <div className="play-triangle play-triangle--green" />
                 </div>
               </button>
-              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", letterSpacing: 3, textTransform: "uppercase" }}>Play again</div>
+              <div className="game-screen__cta">Play again</div>
             </div>
           )}
         </div>
