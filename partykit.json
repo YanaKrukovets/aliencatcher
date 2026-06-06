@@ -2,7 +2,7 @@
   "name": "alifallx",
   "main": "party/game-room.js",
   "parties": {
-    "game-room": "party/game-room.js"
+    "gameroom": "party/game-room.js"
   },
   "compatibilityDate": "2023-10-01"
 }
