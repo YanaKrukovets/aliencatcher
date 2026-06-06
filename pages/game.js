@@ -1890,7 +1890,7 @@ export default function Game() {
                   <div className="start-cta-click">Solo</div>
                   <div className="start-cta-tap">Solo</div>
                 </button>
-                <button className="start-mode-option" aria-label="Play with a friend online" onClick={() => router.push("/game-room")}>
+                <button className="start-mode-option" aria-label="Play with a friend online" onClick={() => router.push("/game-room")} style={{ display: "none" }}>
                   <div className="play-btn play-btn--multi" style={{ pointerEvents: "none" }}>
                     <div className="play-ring play-ring--1 play-ring--multi-1" />
                     <div className="play-ring play-ring--2 play-ring--multi-2" />
