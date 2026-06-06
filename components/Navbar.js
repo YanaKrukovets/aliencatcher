@@ -87,7 +87,7 @@ export default function Navbar() {
                         aria-current={router.asPath === item.href ? "page" : undefined}
                         className={`${
                           router.asPath === item.href ? "active" : ""
-                        } text-white  hover:underline menu-a`}
+                        } text-white menu-a`}
                       >
                         <span className="!flex flex-col xmd:inline-block whitespace-nowrap lg:whitespace-normal text-[20px]">
                           {item.label}

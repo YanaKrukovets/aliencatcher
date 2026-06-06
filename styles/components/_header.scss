@@ -196,6 +196,11 @@ header {
       border-bottom: 2px solid #86c5da;
     }
 
+    a:hover {
+      border-bottom: 2px solid #86c5da;
+      text-decoration: none;
+    }
+
     .desktop-nav-item {
       display: flex;
       align-items: center;

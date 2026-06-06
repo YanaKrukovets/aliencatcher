@@ -7,8 +7,7 @@ module.exports = {
   ],
   theme: {
     fontFamily: {
-      roboto: ["Roboto"],
-      anek: ["Anek Latin"],
+      roboto: ["var(--font-roboto)", "Roboto", "sans-serif"],
     },
     screens: {
       xxxl: { max: "2000px" },
@@ -51,5 +50,5 @@ module.exports = {
   variants: {
     extend: {},
   },
-  plugins: [require("@headlessui/tailwindcss")],
+  plugins: [],
 };

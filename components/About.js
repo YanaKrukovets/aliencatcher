@@ -93,7 +93,7 @@ const About = () => {
             rel="noreferrer"
             aria-label="Link to Yana Krukovets Github"
           >
-            <AiFillGithub className="social-media" role="presentation" />
+            <AiFillGithub className="social-media" aria-hidden="true" focusable="false" />
           </a>
           <a
             href="https://www.instagram.com/aliencatcher2025/"
@@ -101,7 +101,7 @@ const About = () => {
             rel="noreferrer"
             aria-label="Link to AlifallX instagram account"
           >
-            <AiFillInstagram className="social-media" role="presentation" />
+            <AiFillInstagram className="social-media" aria-hidden="true" focusable="false" />
           </a>
           <a
             href="https://www.linkedin.com/in/yana-krukovets-25658260/"
@@ -109,7 +109,7 @@ const About = () => {
             rel="noreferrer"
             aria-label="Link to Yana Krukovets linkedin account"
           >
-            <AiFillLinkedin className="social-media" role="presentation" />
+            <AiFillLinkedin className="social-media" aria-hidden="true" focusable="false" />
           </a>
         </div>
       </div>
