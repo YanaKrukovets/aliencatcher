@@ -1,0 +1,81 @@
+.error-page {
+  position: relative;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  overflow: hidden;
+  background: #06091c;
+
+  &__canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  &__content {
+    position: relative;
+    z-index: 10;
+    max-width: 560px;
+    padding: 0 2.5rem 0 clamp(1.5rem, 8vw, 6rem);
+    text-align: left;
+  }
+
+  &__code {
+    font-size: clamp(5rem, 16vw, 10rem);
+    font-weight: 900;
+    line-height: 1;
+    margin: 0 0 0.1em;
+    color: #64C8FF;
+    text-shadow:
+      0 0 20px rgba(100, 200, 255, 0.6),
+      0 0 60px rgba(100, 200, 255, 0.3);
+    letter-spacing: -2px;
+
+    &--red {
+      color: #ff6b35;
+      text-shadow:
+        0 0 20px rgba(255, 107, 53, 0.65),
+        0 0 60px rgba(255, 107, 53, 0.3);
+    }
+  }
+
+  &__title {
+    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 1rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  &__message {
+    font-size: clamp(0.9rem, 2vw, 1.05rem);
+    color: rgba(180, 210, 255, 0.8);
+    line-height: 1.7;
+    margin: 0 0 2rem;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .error-page {
+    justify-content: center;
+
+    &__content {
+      padding: 2rem 1.5rem;
+      text-align: center;
+    }
+
+    &__actions {
+      justify-content: center;
+    }
+  }
+}

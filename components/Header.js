@@ -107,7 +107,7 @@ export default function Header() {
                         key={item.label}
                         className={`${
                           router.pathname == "/" + item.href ? "active" : ""
-                        } desktop-nav-item transition-all hover:underline`}
+                        } desktop-nav-item transition-all`}
                       >
                         <Image
                           className={`desktop-nav-icon object-cover`}

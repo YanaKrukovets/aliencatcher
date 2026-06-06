@@ -118,7 +118,7 @@ const HeaderBanner = () => {
       />
 
       <div className="banner-content">
-        <div className="banner-float">
+        <div className="banner-float" aria-hidden="true">
           <div className="banner-subtitle">Welcome to</div>
           <div className="banner-title">
             <Typewriter
@@ -144,7 +144,7 @@ const HeaderBanner = () => {
           <Link className="banner-btn" href="/game">
             <span /><span /><span /><span />Play Game
           </Link>
-          <Link className="banner-btn" href="https://buymeacoffee.com/yanashellii" target="_blank" rel="noopener noreferrer">
+          <Link className="banner-btn" href="https://buymeacoffee.com/yanashellii" target="_blank" rel="noopener noreferrer" aria-label="Support Yana — opens in a new tab">
             <span /><span /><span /><span />Support
           </Link>
         </div>

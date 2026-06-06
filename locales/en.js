@@ -23,6 +23,11 @@ export default {
     contact_text: "Contact Us",
     contact_url: "/link",
     text: "© 2024. All rights reserved.",
+    nav_play: "Play Game",
+    nav_about: "About",
+    nav_faq: "FAQ",
+    nav_contact: "Contact",
+    nav_privacy: "Privacy Policy",
   },
 
   home: {

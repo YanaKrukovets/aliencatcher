@@ -1,7 +1,6 @@
 import AboutGame from "../components/AboutGame";
 import Head from "next/head";
 
-import ContactForm from "../components/Contact";
 import FAQ from "../components/FAQ";
 import HeaderBanner from "../components/HomeBanner";
 
@@ -12,23 +11,25 @@ export default function Home(props) {
         <title>AlifallX: Don&apos;t Leave Them Behind — Browser Game by Yana Krukovets</title>
         <meta
           name="description"
-          content="AlifallX: Don't Leave Them Behind. Catch falling aliens, dodge rocks, and survive increasingly wild levels. Free browser game by Yana Krukovets. Ottawa, Canada."
+          content="AlifallX is a fun, free web browser game — no download needed. Catch falling aliens, dodge rocks, and survive increasingly wild levels. Play instantly in your browser, made by Yana Krukovets."
         />
         <link rel="canonical" href="https://www.alifallx.com/" />
         <meta property="og:url" content="https://www.alifallx.com/" />
         <meta property="og:title" content="AlifallX: Don't Leave Them Behind — Browser Game by Yana Krukovets" />
         <meta
           property="og:description"
-          content="Catch falling aliens, dodge rocks, and survive increasingly wild levels. Free browser game by Yana Krukovets."
+          content="A fun, free web browser game — no download needed. Catch falling aliens, dodge rocks, and survive increasingly wild levels. Play instantly."
         />
         <meta property="og:type" content="website" />
         <meta property="og:image" content="https://www.alifallx.com/images/og-image.png" />
+        <meta name="twitter:card" content="summary_large_image" />
         <meta property="twitter:url" content="https://www.alifallx.com/" />
         <meta name="twitter:title" content="AlifallX: Don't Leave Them Behind — Browser Game by Yana Krukovets" />
         <meta
           name="twitter:description"
-          content="Catch falling aliens, dodge rocks, and survive increasingly wild levels. Free browser game by Yana Krukovets."
+          content="A fun, free web browser game — no download needed. Catch falling aliens, dodge rocks, and survive increasingly wild levels. Play instantly."
         />
+        <meta name="twitter:image" content="https://www.alifallx.com/images/og-image.png" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -85,9 +86,6 @@ export default function Home(props) {
         <AboutGame />
       </div>
       <FAQ />
-      <div className="contact-wrapper">
-        <ContactForm />
-      </div>
     </>
   );
 }
