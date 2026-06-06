@@ -1,4 +1,4 @@
-import { useForm, ValidationError } from "@formspree/react";
+import { useForm, ValidationError } from "../hooks/useFormspree";
 
 function ContactForm() {
   const [state, handleSubmit] = useForm("mjvllaww");

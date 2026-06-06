@@ -1,6 +1,6 @@
 import Head from "next/head";
 import Link from "next/link";
-import { useForm, ValidationError } from "@formspree/react";
+import { useForm, ValidationError } from "../hooks/useFormspree";
 
 export default function ContactPage() {
   const [state, handleSubmit] = useForm("mjvllaww");
