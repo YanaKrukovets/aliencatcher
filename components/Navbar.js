@@ -29,7 +29,7 @@ export default function Navbar() {
     item4: {
       label: "Contact",
       aria: "Link to Contact Yana Krukovets",
-      href: "/#contact",
+      href: "/contact",
     },
   };
 
@@ -53,7 +53,7 @@ export default function Navbar() {
   return (
     <>
       {/*Header Nav*/}
-      <div className="xxxl:px-0 fixed w-full z-10 left-0">
+      <div className="xxxl:px-0 fixed w-full z-[99] left-0">
         <nav className="md:flex justify-between topnav mx-auto">
           <div className="flex justify-between max-w-wrapper px-5 mx-auto w-full">
             {/* Logo */}
@@ -86,7 +86,7 @@ export default function Navbar() {
                         key={item.label}
                         aria-current={router.asPath === item.href ? "page" : undefined}
                         className={`${
-                          router.pathname == "/" + item.href ? "active" : ""
+                          router.asPath === item.href ? "active" : ""
                         } text-white  hover:underline menu-a`}
                       >
                         <span className="!flex flex-col xmd:inline-block whitespace-nowrap lg:whitespace-normal text-[20px]">
@@ -102,6 +102,7 @@ export default function Navbar() {
 
             <div
               id="mobile-nav"
+              aria-hidden={mobileNavExpanded ? undefined : true}
               className={`mobile-nav ${
                 mobileNavExpanded ? "block h-full" : ""
               }`}

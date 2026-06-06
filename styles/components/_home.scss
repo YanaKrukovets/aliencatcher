@@ -876,9 +876,10 @@
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 .form-control:focus {
-  outline: none;
+  outline: 2px solid rgba(100, 200, 255, 0.7);
+  outline-offset: 1px;
   border-color: rgba(100, 200, 255, 0.7);
-  box-shadow: 0 0 0 3px rgba(100, 200, 255, 0.15);
+  box-shadow: 0 0 0 3px rgba(100, 200, 255, 0.2);
 }
 
 footer {
@@ -907,12 +908,6 @@ footer {
   font-size: 17px;
 }
 
-nav {
-  position: fixed;
-  right: 0;
-  width: 100%;
-  z-index: 99;
-}
 
 .tech {
   padding-top: 7px;
@@ -944,12 +939,6 @@ nav {
 // Contact section
 .contact-section {
   border-top: 1px solid rgba(100, 200, 255, 0.12);
-  color: #e8f4ff;
-}
-
-// index.js dark gradient wrapper around Contact
-.contact-wrapper {
-  background: linear-gradient(180deg, #1a0828 0%, #06091c 100%);
   color: #e8f4ff;
 }
 

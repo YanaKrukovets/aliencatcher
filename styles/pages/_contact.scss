@@ -1,0 +1,184 @@
+// Contact page — two-column layout
+.contact-page {
+  min-height: calc(100vh - 60px);
+  background: radial-gradient(ellipse at top, #1a0828 0%, #06091c 100%);
+  color: #e8f4ff;
+  padding: 80px 24px 80px;
+
+  &__inner {
+    max-width: 1100px;
+    margin: auto auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    padding-top: 40px;
+    align-items: start;
+
+    @media (max-width: $xmedium-max-width) {
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+  }
+
+  &__left {
+    padding-top: 8px;
+  }
+
+  &__label {
+    font-size: 12px;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    color: rgba(100, 200, 255, 0.85);
+    margin-bottom: 16px;
+  }
+
+  &__heading {
+    font-size: clamp(28px, 4vw, 44px);
+    font-weight: 700;
+    color: #64C8FF;
+    line-height: 1.2;
+    margin-bottom: 24px;
+  }
+
+  &__body {
+    font-size: 16px;
+    line-height: 1.2;
+    color: rgba(232, 244, 255, 0.8);
+    max-width: 420px;
+    margin-bottom: 32px;
+
+    @media (max-width: $xmedium-max-width) {
+      max-width: 100%;
+    }
+  }
+
+  &__back-link {
+    font-size: 14px;
+    color: rgba(100, 200, 255, 0.7);
+    text-decoration: none;
+    letter-spacing: 1px;
+    transition: color 0.2s;
+
+    &:hover {
+      color: #64C8FF;
+    }
+  }
+
+  &__right {
+    background: rgba(10, 20, 60, 0.4);
+    border: 1px solid rgba(100, 200, 255, 0.12);
+    border-radius: 12px;
+    padding: 36px 32px;
+
+    @media (max-width: $small-max-width) {
+      padding: 24px 18px;
+    }
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__required-note {
+    font-size: 13px;
+    color: rgba(232, 244, 255, 0.65);
+    margin-bottom: 8px;
+  }
+
+  &__textarea {
+    min-height: 140px;
+    resize: vertical;
+  }
+
+  &__submit {
+    margin-top: 24px;
+    font-size: 16px;
+    padding: 12px 28px;
+    width: 100%;
+  }
+}
+
+// Privacy policy page
+.policy-page {
+  min-height: calc(100vh - 60px);
+  background: radial-gradient(ellipse at top, #1a0828 0%, #06091c 100%);
+  color: #e8f4ff;
+  padding: 80px 24px 80px;
+
+  &__inner {
+    max-width: 760px;
+    margin: 0 auto;
+  }
+
+  &__label {
+    font-size: 12px;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    color: rgba(100, 200, 255, 0.85);
+    margin-bottom: 16px;
+  }
+
+  &__heading {
+    font-size: clamp(28px, 4vw, 44px);
+    font-weight: 700;
+    color: #64C8FF;
+    line-height: 1.2;
+    margin-bottom: 8px;
+  }
+
+  &__updated {
+    font-size: 13px;
+    color: rgba(232, 244, 255, 0.65);
+    margin-bottom: 48px;
+  }
+
+  &__section {
+    margin-bottom: 36px;
+    border-top: 1px solid rgba(100, 200, 255, 0.08);
+    padding-top: 28px;
+
+    h2 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #e8f4ff;
+      margin-bottom: 12px;
+    }
+
+    p {
+      font-size: 15px;
+      line-height: 1.8;
+      color: rgba(232, 244, 255, 0.75);
+      margin-bottom: 12px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+
+  &__link {
+    color: #64C8FF;
+    text-decoration: underline;
+    text-decoration-color: rgba(100, 200, 255, 0.4);
+    transition: text-decoration-color 0.2s;
+
+    &:hover {
+      text-decoration-color: #64C8FF;
+    }
+  }
+
+  &__back-link {
+    display: inline-block;
+    margin-top: 16px;
+    font-size: 14px;
+    color: rgba(100, 200, 255, 0.7);
+    text-decoration: none;
+    letter-spacing: 1px;
+    transition: color 0.2s;
+
+    &:hover {
+      color: #64C8FF;
+    }
+  }
+}

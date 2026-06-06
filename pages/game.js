@@ -1432,18 +1432,18 @@ export default function Game() {
     <>
       <Head>
         <title>Play AlifallX: Don&apos;t Leave Them Behind — Free Browser Game</title>
-        <meta name="description" content="Catch falling aliens, dodge rocks, survive meteor storms, and fight UFOs. Free arcade browser game — no install needed." />
+        <meta name="description" content="A fun, free web browser game — no download or account needed. Catch aliens, dodge rocks, survive meteor storms, and fight UFOs across 50+ wild levels. Play instantly!" />
         <link rel="canonical" href="https://www.alifallx.com/game" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
         <meta property="og:url" content="https://www.alifallx.com/game" />
         <meta property="og:type" content="website" />
         <meta property="og:title" content="Play AlifallX: Don't Leave Them Behind — Free Browser Game" />
-        <meta property="og:description" content="Catch falling aliens, dodge rocks, survive meteor storms, and fight UFOs. Free arcade browser game — no install needed." />
+        <meta property="og:description" content="A fun, free web browser game — no download or account needed. Catch aliens, dodge rocks, survive meteor storms, and fight UFOs. Play instantly!" />
         <meta property="og:image" content="https://www.alifallx.com/images/og-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta property="twitter:url" content="https://www.alifallx.com/game" />
         <meta name="twitter:title" content="Play AlifallX: Don't Leave Them Behind — Free Browser Game" />
-        <meta name="twitter:description" content="Catch falling aliens, dodge rocks, survive meteor storms, and fight UFOs. Free arcade browser game — no install needed." />
+        <meta name="twitter:description" content="A fun, free web browser game — no download or account needed. Catch aliens, dodge rocks, survive meteor storms, and fight UFOs. Play instantly!" />
         <meta name="twitter:image" content="https://www.alifallx.com/images/og-image.png" />
         <script
           type="application/ld+json"
