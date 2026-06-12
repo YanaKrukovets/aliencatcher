@@ -1,0 +1,55 @@
+.hire-banner {
+  background: #fff;
+  border-top: 1px solid rgba(30, 107, 184, 0.12);
+  padding: 60px 20px;
+}
+
+.hire-banner__card {
+  max-width: 740px;
+  margin: 0 auto;
+  background: rgba(30, 107, 184, 0.04);
+  border: 1px solid rgba(30, 107, 184, 0.18);
+  border-radius: 6px;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.hire-banner__heading {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+
+.hire-banner__text {
+  max-width: 620px;
+  margin: 0 auto 32px;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #333;
+}
+
+.hire-banner__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+}
+
+.hire-banner__button {
+  display: inline-block;
+  padding: 14px 30px;
+  border: 1px solid rgba(30, 107, 184, 0.4);
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e6bb8;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+
+  &:hover {
+    background: #1e6bb8;
+    border-color: #1e6bb8;
+    color: #fff;
+  }
+}

@@ -30,6 +30,14 @@ export default {
     nav_privacy: "Privacy Policy",
   },
 
+  hire: {
+    heading: "Need a developer for your next project?",
+    text: "Yana Krukovets is a Full Stack/Frontend Developer based in Ottawa, Canada, specializing in React, Next.js, WordPress, Sanity, Shopify development.",
+    projects: "View Projects",
+    about: "About Yana",
+    contact: "Get in Touch",
+  },
+
   home: {
     learn_more: "Learn more",
     girl_alt: "girl",

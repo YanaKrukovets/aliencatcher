@@ -3,6 +3,7 @@ import Head from "next/head";
 
 import FAQ from "../components/FAQ";
 import HeaderBanner from "../components/HomeBanner";
+import HireBanner from "../components/HireBanner";
 
 export default function Home(props) {
   return (
@@ -86,6 +87,7 @@ export default function Home(props) {
         <AboutGame />
       </div>
       <FAQ />
+      <HireBanner />
     </>
   );
 }
